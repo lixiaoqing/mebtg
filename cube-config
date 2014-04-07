@@ -1,0 +1,55 @@
+[beam_hist] 60
+[beam_prob] 20.3
+[ttable-limit] 60
+[nbest-list] 60
+
+[lm-file] data/lm.bin
+[phrase-file] data/prob.bin.dev
+[test-file] data/dev_ch.txt
+[result-file] data/result.txt
+[nbest-file] nbest.txt
+[source-LM-file] LM-chi
+
+[reorder-model-file] data/me_model.txt
+
+[context-model-list] data/catalog.txt
+
+[source-vocab-file] data/vocab.ch
+[target-vocab-file] data/vocab.en
+
+[chn2eng] 1
+[chinese-disreorder-puncs] ，、；：“”。！？（）《》［］ 
+[chinese-split-puncs] ，@；
+
+[file-formate] XML
+[segmentation-formate] SEG
+[trans_unknown_word] SOURCEWORD
+[KenLM] 0
+
+[cube-flag] 1
+[recombine] 1
+[reduce-voc] 0
+[lm-order] 4
+[reorder-window] 8
+
+[weight-parameter]
+trans 1 1 1 1
+len 0.48
+lm 0.13
+reorder 0.15
+phrase-num -1
+sense 1
+[weight-parameter-end]
+
+[print-info] 0
+[print-nbest] 1
+
+[train] 1
+[cands-file] cands
+[feats-file] feats
+[init-file] init.txt
+
+
+
+
+
