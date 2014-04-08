@@ -15,6 +15,111 @@ National Laboratory of Pattern Recognition, IA, CAS
 #include "Algorithm.h"
 #include "MePredict.h"
 
+void MaxentModel::load(string &modelfile)
+{
+	gzFile f;
+	f = gzopen(modelfile.c_str(), "rb");
+	if (f == NULL)
+	{
+		cerr<<"cannot open model file!\n";
+		return;
+	}
+	//skip header
+	gzseek(f, 16, 0);
+
+	char buf[4096]; // TODO: handle unsafe buffer
+	// read features
+	gzread(f, (void*)&feature_num, sizeof(feature_num));
+	size_t len;
+	for (size_t i = 0; i < feature_num; ++i) 
+	{
+		gzread(f, (void*)&len, sizeof(len));
+		gzread(f, (void*)&buf, len);
+		feature2id.insert(make_pair(string(buf,len),i));
+	}
+
+	// read tags
+	gzread(f, (void*)&tag_num, sizeof(tag_num));
+	for (size_t i = 0; i < tag_num; ++i) 
+	{
+		gzread(f, (void*)&len, sizeof(len));
+		gzread(f, (void*)&buf, len);
+		tag2id.insert(make_pair(string(buf,len),i));
+	}
+
+	// read paramaters
+	size_t tagid;
+	featureAddrVec.resize(feature_num+1,0);
+	for (size_t i = 0; i < feature_num; ++i) 
+	{
+		gzread(f, (void*)&len, sizeof(len));
+		featureAddrVec.at(i+1) = featureAddrVec.at(i)+len;
+		for (size_t j = 0; j < len; ++j) 
+		{
+			gzread(f, (void*)&tagid, sizeof(tagid));
+			lambda2tagVec.push_back(tagid);
+		}
+	}
+
+	// load theta
+	gzread(f, (void*)&lambda_num, sizeof(lambda_num));
+
+	double lambda;
+	for (size_t i = 0; i < lambda_num; ++i) 
+	{
+		gzread(f, (void*)&lambda, sizeof(lambda));
+		lambdaVec.push_back(lambda);
+	}
+	gzclose(f);
+}
+
+double MaxentModel::eval(vector<string> &context, string & outcome)
+{
+	int tagid = 0;
+	map <string,size_t>::iterator it = tag2id.find(outcome);
+	if (it != tag2id.end())
+	{
+		tagid = it->second;
+	}
+	else
+	{
+		return -99;
+	}
+	vector<double> probs;
+	probs.resize(tag_num, 0.0);
+	
+	for (size_t i = 0; i < context.size(); i ++)
+	{
+		map<string,size_t>::iterator iter = feature2id.find(context.at(i));
+		if (iter != feature2id.end())
+		{
+			int featureid = iter->second;
+			int num1 = featureAddrVec.at(featureid);
+			int num2 = featureAddrVec.at(featureid+1);
+			for (int j = num1; j < num2; j ++)
+			{
+				probs.at(lambda2tagVec.at(j)) += lambdaVec.at(j);
+			}
+		}
+		else
+		{
+			continue;
+		}
+	}
+	
+	double sum = 0.0;
+	for (size_t j = 0; j < probs.size(); j ++)
+	{
+		probs.at(j) = exp(probs.at(j));
+		sum += probs.at(j);
+	}
+	
+	for (size_t k = 0; k < probs.size(); k ++)
+	{
+		probs.at(k) /= sum; 
+	}
+	return log10(probs.at(tagid));
+}
 
 /**********************************************************************************************/
 //初始化参数
@@ -98,7 +203,7 @@ Algorithm::Initialize(Config parameter)
 	_pstPhrasePro = new PhrasePro(_pVocabChi, _pVocabEng, TRAN_TABLE_SIZE);
 	
 	//下面基于上下文的翻译模型变量初始化由李小青14年3月29日添加
-	m_context_based_translation_models.resize(_pVocabChi->size());
+	m_context_based_translation_models.resize(_pVocabChi->size(),MaxentModel(true));
 	ifstream fin_catalog(parameter.catalog_filename.c_str());
 	if (!fin_catalog)
 	{
@@ -108,10 +213,9 @@ Algorithm::Initialize(Config parameter)
 	string context_model_filename;
 	while(getline(fin_catalog,context_model_filename))
 	{
-		MaxentModel* m = new MaxentModel;
 		//cout<<"loading sense model "<<context_model_filename<<endl;  //4debug
-		m->load(("data/"+context_model_filename).c_str());
-		m_context_based_translation_models.at(atoi(context_model_filename.c_str())) = m;
+		string model_file = "data/"+context_model_filename;
+		m_context_based_translation_models.at(atoi(context_model_filename.c_str())).load(model_file);
 	}
 
 	//根据测试语料对短语对和语言模型进行削减
@@ -186,6 +290,8 @@ Algorithm::~Algorithm()
 	m_spans.clear();
 	
 	//删除基于上下文的翻译模型，由李小青2014年4月7日添加
+	/*
+	m_context_based_translation_models.clear();
 	for(size_t i=1; i<m_context_based_translation_models.size() ; i++ )
 	{
 		if (m_context_based_translation_models.at(i) != NULL)
@@ -194,6 +300,7 @@ Algorithm::~Algorithm()
 			m_context_based_translation_models.at(i) = NULL;
 		}
 	}
+	*/
 	
 	for(int i=1; i<_ulSenLenMax+1 ; i++ )
 	{
@@ -476,7 +583,7 @@ bool Algorithm::GenSearchSpace(vector< vector< pair<string,double> > > SenChiCN)
 									}
 									*/
 								}
-								m_SearchSpaceTemp->m_context_based_trans_prob += GetContextBasedTranslationProb(k-1,tgt_translation);
+								//m_SearchSpaceTemp->m_context_based_trans_prob += GetContextBasedTranslationProb(k-1,tgt_translation);
 								//cout<<ch_word_vec.at(k-1)<<" ||| "<<tgt_translation<<'\t'<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
 							}
 							m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob + all_Lambda.sense*m_SearchSpaceTemp->m_context_based_trans_prob;
@@ -1035,8 +1142,7 @@ double Algorithm::ComputeMergedLM(Ngram* c_ngram_trie, int c_ngram_order, vector
 double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translation)
 {
 	int cur_word_id = _pulSenChi[pos+1];
-	MaxentModel* m = m_context_based_translation_models.at(cur_word_id);
-	if (m == NULL)
+	if (m_context_based_translation_models.at(cur_word_id).is_void_model == true)
 		return -99;
 	//assert (ch_word_vec.size() == _ulSenLenChi)
 	//cout<<"sense model found!\n";  //4debug
@@ -1052,9 +1158,8 @@ double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translatio
 		//cout<<s+"/"+ch_word_vec.at(i)<<endl; //4debug
 		context.push_back(s+"/"+ch_word_vec.at(i));
 	}
-	return log10(m->eval(context,tgt_translation));
+	return log10(m_context_based_translation_models.at(cur_word_id).eval(context,tgt_translation));
 }
-
 
 /**********************************************************************************************/
 //函数 MergeIntoEdge

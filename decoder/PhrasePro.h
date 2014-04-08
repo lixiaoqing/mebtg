@@ -7,6 +7,7 @@ PhrasePro.h
 #define PHRASEPRO_H
 #include "StdAfx.h"
 #include "PhraseProTrie.h"
+#include "myutils.h"
 
 
 

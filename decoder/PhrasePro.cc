@@ -4,45 +4,6 @@ Phrasepro.cpp
 
 #include "PhrasePro.h"
 
-int s2i(string &s)
-{
-	int i;
-	stringstream ss;
-	ss<<s;
-	ss>>i;
-	return i;
-}
-
-void TrimLine(string & line)
-{
-	line.erase(0,line.find_first_not_of(" \t\r\n"));
-	line.erase(line.find_last_not_of(" \t\r\n")+1); 
-}
-
-void Split(vector <string> &vs, string &s)
-{
-	vs.clear();
-	stringstream ss;
-	string e;
-	ss << s;
-	while(ss >> e)
-		vs.push_back(e);
-}
-
-void Split(vector <string> &vs, string &s, string &sep)
-{
-	int cur = 0,next;
-	next = s.find(sep);
-	while(next != string::npos)
-	{
-		if(s.substr(cur,next-cur) !="")
-			vs.push_back(s.substr(cur,next-cur));
-		cur = next+sep.size();
-		next = s.find(sep,cur);
-	}
-	vs.push_back(s.substr(cur));
-}
-
 ////////////////////////////////////////////////////////////////////////
 // 1.主要功能：读取词对齐信息
 // 2.入口参数：文件指针
@@ -123,6 +84,7 @@ PhrasePro::ReadAlignment(const char* AlignmentFileName)
 	cout<<"added alignment infor items: "<<num<<endl;
 	return true;
 }
+
 
 ////////////////////////////////////////////////////////////////////////
 // 1.主要功能：读取翻译概率参数文件

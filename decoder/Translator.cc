@@ -49,7 +49,6 @@ int main( int argc, char *argv[] )
 	cout<<"Total Time: "<<(double)( (m_tEnd-m_tBegin)/CLOCKS_PER_SEC) <<endl;
 
 	delete m_pAlgorithm;
-	
 }
 
 bool ParseArgs(int argc, char *argv[], Config &parameter)

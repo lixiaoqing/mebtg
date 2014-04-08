@@ -21,9 +21,26 @@
 #include "MePredict.h"
 #include "LanguageModel.h"
 #include "ff_klm.h"
+#include "myutils.h"
 
-#include <maxent/maxentmodel.hpp>
-using namespace maxent;
+class MaxentModel
+{
+	public:
+		MaxentModel(bool b) {is_void_model = b;}
+		bool is_void_model;
+		void load(string &modelfile);
+		double eval(vector<string> &context, string &tgt_translation);		
+	private:
+		size_t feature_num;
+		size_t tag_num;
+		size_t lambda_num;
+		map <string,size_t> feature2id;
+		map <string,size_t> tag2id;
+		vector <string> featureVec;
+		vector <double> lambdaVec;
+		vector <size_t> lambda2tagVec;
+		vector <size_t> featureAddrVec;				
+};
 
 class DecodingSpanThread
 {
@@ -129,7 +146,7 @@ private:
 	//下面调序模型由张家俊09年1月5日添加
 	ReorderModel* m_me_reorder_model;
 	//下面基于上下文的翻译模型由李小青14年3月29日添加
-	vector <MaxentModel*> m_context_based_translation_models;
+	vector <MaxentModel> m_context_based_translation_models;
 	int m_reorder_window;                 //调序窗口的大小
 	int m_cube_flag;                    //是否利用cube prunning算法解码
 

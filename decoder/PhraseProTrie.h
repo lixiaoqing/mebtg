@@ -17,7 +17,7 @@ public:
 	vector<int> viEnPhrase;
 	double dPro;								//概率
 	vector<double> eachTransPro;
-	vector<vector<int> > ch_pos_to_en_pos_list;                //每个中文词对应的英文词位置
+	vector<vector<int> > ch_pos_to_en_pos_list;                //每个中文词对应的英文词位置,由李小青2014年3月31日添加
 // 	double dpce;
 // 	double dlce;
 // 	double dpec;
