@@ -17,6 +17,7 @@ National Laboratory of Pattern Recognition, IA, CAS
 
 void MaxentModel::load(string &modelfile)
 {
+	is_void_model = false;
 	gzFile f;
 	f = gzopen(modelfile.c_str(), "rb");
 	if (f == NULL)
@@ -85,6 +86,7 @@ double MaxentModel::eval(vector<string> &context, string & outcome)
 	{
 		return -99;
 	}
+	cout<<"tgt tanslation found\n";  //4debug
 	vector<double> probs;
 	probs.resize(tag_num, 0.0);
 	
@@ -213,7 +215,7 @@ Algorithm::Initialize(Config parameter)
 	string context_model_filename;
 	while(getline(fin_catalog,context_model_filename))
 	{
-		//cout<<"loading sense model "<<context_model_filename<<endl;  //4debug
+		cout<<"loading sense model "<<context_model_filename<<endl;  //4debug
 		string model_file = "data/"+context_model_filename;
 		m_context_based_translation_models.at(atoi(context_model_filename.c_str())).load(model_file);
 	}
@@ -583,7 +585,9 @@ bool Algorithm::GenSearchSpace(vector< vector< pair<string,double> > > SenChiCN)
 									}
 									*/
 								}
-								//m_SearchSpaceTemp->m_context_based_trans_prob += GetContextBasedTranslationProb(k-1,tgt_translation);
+								cout<<"tgt translation:" << tgt_translation<<endl;  //4debug
+								m_SearchSpaceTemp->m_context_based_trans_prob += GetContextBasedTranslationProb(k-1,tgt_translation);
+								cout<<"cand at each word, m_context_based_trans_prob: "<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
 								//cout<<ch_word_vec.at(k-1)<<" ||| "<<tgt_translation<<'\t'<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
 							}
 							m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob + all_Lambda.sense*m_SearchSpaceTemp->m_context_based_trans_prob;
@@ -922,6 +926,7 @@ bool Algorithm::CubeParse(int m_SenLen, char* pcSenEng, vector<string> &nBestLis
 			c_feats.push_back(m_chart[1][m_SenLen-1][i]->m_swap_reorder_prob);
 			c_feats.push_back(m_chart[1][m_SenLen-1][i]->m_phrase_num);
 			c_feats.push_back(m_chart[1][m_SenLen-1][i]->m_context_based_trans_prob);  //增加基于上下文的翻译概率，供调参用
+			cout<<"whole sentence, m_context_based_trans_prob: "<<m_chart[1][m_SenLen-1][i]->m_context_based_trans_prob<<endl;  //4debug
 			feats.push_back(c_feats);
 		}
 	}
@@ -1145,7 +1150,7 @@ double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translatio
 	if (m_context_based_translation_models.at(cur_word_id).is_void_model == true)
 		return -99;
 	//assert (ch_word_vec.size() == _ulSenLenChi)
-	//cout<<"sense model found!\n";  //4debug
+	cout<<"sense model found!\n";  //4debug
 	int left_bound = max(pos-10,0);
 	int right_bound = min(pos+10,_ulSenLenChi-1);
 	vector <string> context;
@@ -1158,7 +1163,7 @@ double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translatio
 		//cout<<s+"/"+ch_word_vec.at(i)<<endl; //4debug
 		context.push_back(s+"/"+ch_word_vec.at(i));
 	}
-	return log10(m_context_based_translation_models.at(cur_word_id).eval(context,tgt_translation));
+	return m_context_based_translation_models.at(cur_word_id).eval(context,tgt_translation);
 }
 
 /**********************************************************************************************/
@@ -1258,6 +1263,7 @@ bool Algorithm::MergeIntoEdge(s_SearchSpace* left_searchspace, s_SearchSpace* ri
     c_tmp_searchspace->m_en_ngram_prob = left_searchspace->m_en_ngram_prob + right_searchspace->m_en_ngram_prob + c_ngram_prob;
     //计算基于上下文的翻译模型的打分
     c_tmp_searchspace->m_context_based_trans_prob = left_searchspace->m_context_based_trans_prob + right_searchspace->m_context_based_trans_prob;
+    cout<<"mono merge, m_context_based_trans_prob:"<<c_tmp_searchspace->m_context_based_trans_prob<<endl;  //4debug
 	c_tmp_searchspace->dPro = left_searchspace->dPro + right_searchspace->dPro + all_Lambda.lm*c_ngram_prob + all_Lambda.reorderStraight*c_straight_prob;
 	//cerr<<"in merge edges 2"<<endl;
     //将此边压栈
@@ -1315,6 +1321,7 @@ bool Algorithm::MergeIntoEdge(s_SearchSpace* left_searchspace, s_SearchSpace* ri
     c_tmp_searchspace->m_en_ngram_prob = left_searchspace->m_en_ngram_prob + right_searchspace->m_en_ngram_prob + c_ngram_prob;
     //计算基于上下文的翻译模型的打分
     c_tmp_searchspace->m_context_based_trans_prob = left_searchspace->m_context_based_trans_prob + right_searchspace->m_context_based_trans_prob;
+    cout<<"swap merge, m_context_based_trans_prob:"<<c_tmp_searchspace->m_context_based_trans_prob<<endl;  //4debug
     c_tmp_searchspace->dPro = left_searchspace->dPro + right_searchspace->dPro + all_Lambda.lm*c_ngram_prob + all_Lambda.reorderSwap*c_invert_prob;
     //将此边压栈
 	//cerr<<"in merge edges 5"<<endl;
