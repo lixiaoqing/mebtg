@@ -18,26 +18,27 @@ PhraseProTrie.h
 20：在类s_PhrasePro中定义变量ch_pos_to_en_pos_list，用来记录（短语表中）中文短语中的每个词对应的英文词的位置
 
 PhrasePro.h
-25：在类PhrasePro中声明函数ReadAlignment，用来从短语表中读取对齐信息
+10：包含头文件myutils.h，提供常用字符串处理以及类型转换函数
+26：在类PhrasePro中声明函数ReadAlignment，用来从短语表中读取对齐信息
 
 PhrasePro.cpp
-7-44：定义常用函数s2i,TrimLine,Split
-46：在类PhrasePro中定义函数ReadAlignment，用来从短语表中读取对齐信息
+7：在类PhrasePro中定义函数ReadAlignment，用来从短语表中读取对齐信息
 
 Algorithm.h
-25：包含maxent头文件并使用其命名空间
-120：增加词对齐信息的读取
-131：在类Algorithm中定义变量m_context_based_translation_models，用来存储所有词的新模型
-146：在类Algorithm中定义变量ch_word_vec；用来存储每个中文句子中的次序列
-192：在类Algorithm中声明函数GetContextBasedTranslationProb，它根据每个中文词的上下文以及对应的英文翻译得到新模型打分
+24：包含头文件myutils.h，提供常用字符串处理以及类型转换函数
+26：声明类MaxentModel，提供加载模型以及打分的函数
+148：在类Algorithm中定义变量m_context_based_translation_models，用来存储所有词的新模型
+163：在类Algorithm中定义变量ch_word_vec；用来存储每个中文句子中的次序列
+209：在类Algorithm中声明函数GetContextBasedTranslationProb，它根据每个中文词的上下文以及对应的英文翻译得到新模型打分
 
 Algorithm.cpp
-75：在函数Initialize中对新模型权重all_Lambda.sense进行初始化
-100：在函数Initialize中对m_context_based_translation_models（所有词的新模型）进行初始化
-130：在函数Initialize中读取词对齐信息
-444：在函数GenSearchSpace中为每个翻译候选增加新模型打分
-785：在函数CubeParse中增加新模型打分，供调参用
-997：定义函数GetContextBasedTranslationProb，它根据每个中文词的上下文以及对应的英文翻译得到新模型打分
-1133,1190：在函数MergeIntoEdge中，为合并两个子节点得到的新候选增加新模型打分
-1279,1289,1507：在函数TranslateSentence中，用ch_word_vec代替原有的words
-1651,1757：在函数TranslateFile中增加新模型打分
+18-203：在类MaxentModel中定义加载模型以及打分的函数
+261：在函数Initialize中对新模型权重all_Lambda.sense进行初始化
+286：在函数Initialize中对m_context_based_translation_models（所有词的新模型）进行初始化
+317：在函数Initialize中为每个短语对读取内部的词对齐信息
+644：在函数GenSearchSpace中为每个翻译候选增加新模型打分
+1009：在函数CubeParse中增加新模型打分，供调参用
+1222：定义函数GetContextBasedTranslationProb，它根据每个中文词的上下文以及对应的英文翻译得到新模型打分
+1345,1403：在函数MergeIntoEdge中，为顺序/逆序合并两个子节点得到的新候选增加新模型打分
+1493,1503,1721：在函数TranslateSentence中，用ch_word_vec代替原有的words
+1865,1971：在函数TranslateFile中增加新模型打分
