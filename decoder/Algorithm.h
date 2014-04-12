@@ -100,7 +100,7 @@ class Algorithm
 public:
 	Algorithm(){};
 	~Algorithm();
-	bool TranslateFile(const char* test_file, const char* result_file, FileFormate filetype=TXT, SegFormate segtype=SEG);
+	bool TranslateFile(const char* test_file, const char* sense_file, const char* result_file, FileFormate filetype=TXT, SegFormate segtype=SEG);
 	//下面翻译一行的函数由张家俊09年1月7日添加，一行＝待翻译原文＋语法短语跳序跨度及概率
 	bool TranslateLine(char* pcSenChi, char* pcSenEng, vector<string> &nBestList,	vector< vector<double> > &feats, SegFormate segtype=SEG);
 	bool TranslateSentence(char* pcSenChi, char* pcSenEng, vector<string> &nBestList,	vector< vector<double> > &feats, SegFormate segtype=SEG);

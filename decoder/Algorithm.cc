@@ -1789,7 +1789,7 @@ Algorithm::TranslateSentence(char* pcSenChi,  char* pcSenEng, vector<string> &nB
 //·­ÒëÎÄ¼þ
 /**********************************************************************************************/
 bool 
-Algorithm::TranslateFile(const char* test_file,const char* result_file, FileFormate filetype, SegFormate segtype)
+Algorithm::TranslateFile(const char* test_file, const char* sense_file, const char* result_file, FileFormate filetype, SegFormate segtype)
 {
 	
 	ifstream inputfile(test_file);
