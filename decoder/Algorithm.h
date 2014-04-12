@@ -103,7 +103,7 @@ public:
 	bool TranslateFile(const char* test_file, const char* sense_file, const char* result_file, FileFormate filetype=TXT, SegFormate segtype=SEG);
 	//下面翻译一行的函数由张家俊09年1月7日添加，一行＝待翻译原文＋语法短语跳序跨度及概率
 	bool TranslateLine(char* pcSenChi, char* pcSenEng, vector<string> &nBestList,	vector< vector<double> > &feats, SegFormate segtype=SEG);
-	bool TranslateSentence(char* pcSenChi, char* pcSenEng, vector<string> &nBestList,	vector< vector<double> > &feats, SegFormate segtype=SEG);
+	bool TranslateSentence(char* pcSenChi, string &senseline, char* pcSenEng, vector<string> &nBestList,	vector< vector<double> > &feats, SegFormate segtype=SEG);
 	bool Initialize(Config parameter);
 	
 public:
@@ -161,6 +161,7 @@ private:
 	int* _pulSenEng;							//英文句子词号序列
 	int _ulSenLenChi;							//中文句子长度
 	vector <string> ch_word_vec;                                            //中文词序列
+	vector <string> ch_sense_vec;                                           //中文词义序列
 	int m_SenLen;								//将NP 翻译提取出来之前的句子长度
 	int _ulSenLenMax;							//到目前为止最长的句子;
 	int _ulSenLenEng;							//英文句子长度

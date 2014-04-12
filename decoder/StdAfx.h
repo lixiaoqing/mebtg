@@ -111,6 +111,7 @@ typedef struct{
 	string lmfilename;						//language model probability file
 	string phrasefilename;					//phrase translation probability file
 	string testfilename;					//test file 
+	string sensefilename;					//sense file, repace each word in test file with corresponding sense
 	string resultfilename;					//result file
 	string nbestfilename;					//n_best result file
 	string sourcelmfilename;                //source language model

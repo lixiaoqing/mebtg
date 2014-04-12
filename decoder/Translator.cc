@@ -39,7 +39,7 @@ int main( int argc, char *argv[] )
 	clock_t m_tBegin, m_tEnd;
 	m_tBegin = clock();
 
-	if( !(m_pAlgorithm->TranslateFile(parameter.testfilename.c_str(), parameter.resultfilename.c_str(), parameter.filetype, parameter.segmenttype) ) )
+	if( !(m_pAlgorithm->TranslateFile(parameter.testfilename.c_str(), parameter.sensefilename.c_str(), parameter.resultfilename.c_str(), parameter.filetype, parameter.segmenttype) ) )
 	{
 		cout<<"translate error!"<<endl;
 		exit(0);
@@ -186,6 +186,10 @@ bool ReadConfigFile(char* configfile, Config &parameter)
 		else if( 0 == str1.find("test_file=") )
 		{
 			parameter.testfilename = str1.substr(10, -1);
+		}
+		else if( 0 == str1.find("sense_file=") )
+		{
+			parameter.sensefilename = str1.substr(11, -1);
 		}
 		else if( 0 == str1.find("result_file=") )
 		{
