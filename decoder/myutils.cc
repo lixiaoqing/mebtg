@@ -48,3 +48,11 @@ double s2d(string &s)
 	return d;
 }
 
+string i2s(int i)
+{
+	string s;
+	stringstream ss;
+	ss<<i;
+	return ss.str();
+}
+

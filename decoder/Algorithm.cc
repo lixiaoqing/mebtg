@@ -315,11 +315,13 @@ Algorithm::Initialize(Config parameter)
 	}
 
 	//为每个短语对读取词对齐信息，由李小青2014年4月4日添加
+	/*
 	if ( !_pstPhrasePro->ReadAlignment("data/phrase-table") )
 	{
 		cerr<<"reading alignment file error!\n";
 		return 0;
 	}
+	*/
 
 	_pNgram = NULL;
 	//read LM file
@@ -1237,12 +1239,9 @@ double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translatio
 	vector <string> context;
 	for (int i=left_bound; i<=right_bound; i++)
 	{
-		stringstream ss;
-		string s;
-		ss<<(i-pos);
-		ss>>s;
+		string ralative_pos = i2s(i-pos);
 		//cout<<s+"/"+ch_word_vec.at(i)<<endl; //4debug
-		context.push_back(s+"/"+ch_word_vec.at(i));
+		context.push_back(ralative_pos+"/"+ch_word_vec.at(i));
 	}
 	return m_context_based_translation_models.at(cur_word_id)->eval(context,tgt_translation);
 }

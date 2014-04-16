@@ -124,11 +124,26 @@ PhrasePro::ReadFile(const char* PhraseProFileName, bool ReduceVoc, SegFormate se
 	    fread(c_trans_prob,sizeof(double),4,m_pfPhraseProFile);
             //for(size_t i=0;i<4;i++)
              //   cout<<c_trans_prob[i]<<endl;
+	     //从短语表中读取词对齐信息，由李小青2014年4月16添加
+	    short int c_alignment_num=0;
+	    fread(&c_alignment_num,sizeof(short int),1,m_pfPhraseProFile);
+	    int *c_alignment_vector=new int[c_alignment_num];
+	    fread(c_alignment_vector,sizeof(int),c_alignment_num,m_pfPhraseProFile);
 
 	    s_PhrasePro m_PhraseTemp;
             m_PhraseTemp.ulEnNum=c_en_word_counts;
             if(m_PhraseTemp.ulEnNum > PHRASE_LEN_MAX)
                 continue;
+
+	    //将对齐信息添加到短语候选中去
+	    m_PhraseTemp.ch_pos_to_en_pos_list.resize(c_ch_word_counts);
+            for(size_t i=0;i<c_alignment_num/2;i++)
+	    {
+		    int ch_pos = c_alignment_vector[2*i];
+		    int en_pos = c_alignment_vector[2*i+1];
+		    m_PhraseTemp.ch_pos_to_en_pos_list[ch_pos].push_back(en_pos);
+	    }
+
             for(size_t i=0;i<m_PhraseTemp.ulEnNum+1;i++)
                 m_PhraseTemp.viEnPhrase.push_back(c_en_index_vector[i]);
 
