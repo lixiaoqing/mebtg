@@ -315,11 +315,13 @@ Algorithm::Initialize(Config parameter)
 	}
 
 	//为每个短语对读取词对齐信息，由李小青2014年4月4日添加
+	/*
 	if ( !_pstPhrasePro->ReadAlignment("data/phrase-table") )
 	{
 		cerr<<"reading alignment file error!\n";
 		return 0;
 	}
+	*/
 
 	_pNgram = NULL;
 	//read LM file
@@ -1237,13 +1239,10 @@ double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translatio
 	vector <string> context;
 	for (int i=left_bound; i<=right_bound; i++)
 	{
-		stringstream ss;
-		string s;
-		ss<<(i-pos);
-		ss>>s;
-		//cout<<s+"/"+ch_word_vec.at(i)<<endl; //4debug
-		context.push_back(s+"/"+ch_word_vec.at(i));
-		context.push_back(s+"/"+ch_sense_vec.at(i));  //增加词义特征，由李小青2014年4月12日添加
+		string ralative_pos = i2s(i-pos);
+		context.push_back(ralative_pos+"/"+ch_word_vec.at(i));
+		context.push_back(ralative_pos+"/"+ch_sense_vec.at(i));  //增加词义特征，由李小青2014年4月12日添加
+		//cout<<ralative_pos+"/"+ch_word_vec.at(i)<<'\t'<<ralative_pos+"/"+ch_sense_vec.at(i)<<endl; //4debug
 	}
 	return m_context_based_translation_models.at(cur_word_id)->eval(context,tgt_translation);
 }
@@ -1504,7 +1503,20 @@ Algorithm::TranslateSentence(char* pcSenChi, string &senseline, char* pcSenEng, 
 // 			}
 
 	    //将句子分割为词,在最后添加了一个"0"
-	    m_SenLen = Vocab::ParseWords(m_pcSenChi, ch_word_vec, SEN_LEN_MAX, _parsetype);
+		m_SenLen = Vocab::ParseWords(m_pcSenChi, ch_word_vec, SEN_LEN_MAX, _parsetype);
+		/*
+		if (ch_word_vec.size() != ch_sense_vec.size())                   //check size of the word/sense list, 4debug
+		{
+			cout<<"word list size: "<<ch_word_vec.size()<<endl;
+			cout<<"sense list size: "<<ch_sense_vec.size()<<endl;
+			for (size_t k=0; k<ch_word_vec.size(); k++)
+				cout<<ch_word_vec.at(k)<<' ';
+			cout<<endl;
+			for (size_t k=0; k<ch_sense_vec.size(); k++)
+				cout<<ch_sense_vec.at(k)<<' ';
+			cout<<endl;
+		}
+		*/
 	    if( m_SenLen > SEN_LEN_MAX )
 		{
 			m_SenLen = SEN_LEN_MAX;
@@ -1853,6 +1865,7 @@ Algorithm::TranslateFile(const char* test_file, const char* sense_file, const ch
 
 			cout<<EngSen<<endl<<endl;
 			outputfile<<EngSen<<endl;
+			//break;  //4debug
 
 			if( printNbest  )
 			{
@@ -1888,7 +1901,6 @@ Algorithm::TranslateFile(const char* test_file, const char* sense_file, const ch
 		while( inputfile.getline(ChiSen,SEN_CHAR_MAX) )
 		{
 			string senseline;
-			getline(sensefile,senseline);
 			string line(ChiSen);
 			int pos;
 			pos=line.find("<?xml");
@@ -1960,11 +1972,13 @@ Algorithm::TranslateFile(const char* test_file, const char* sense_file, const ch
 				cout<<"Translating The Sentence "<<num<<endl;
 				cout<<ChiSen<<endl;
 				
+				getline(sensefile,senseline);
 				//下面翻译一行的函数由张家俊09年1月8日修改
 				TranslateSentence(ChiSen, senseline, EngSen, nBestlist, feats, segtype);
 
 				cout<<EngSen<<endl<<endl;;	
 				outputfile<<prepos<<EngSen<<"</s>"<<endl;
+				//break;  //4debug
 
 				if( printNbest)
 				{

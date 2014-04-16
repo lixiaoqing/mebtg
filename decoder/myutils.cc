@@ -33,8 +33,7 @@ void TrimLine(string &line)
 int s2i(string &s)
 {
 	int i;
-	stringstream ss;
-	ss<<s;
+	stringstream ss(s);
 	ss>>i;
 	return i;
 }
@@ -42,9 +41,16 @@ int s2i(string &s)
 double s2d(string &s)
 {
 	double d;
-	stringstream ss;
-	ss<<s;
+	stringstream ss(s);
 	ss>>d;
 	return d;
+}
+
+string i2s(int i)
+{
+	string s;
+	stringstream ss;
+	ss<<i;
+	return ss.str();
 }
 
