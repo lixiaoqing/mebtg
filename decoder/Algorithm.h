@@ -27,7 +27,9 @@ class MaxentModel
 {
 	public:
 		void load(string &modelfile);
-		double eval(vector<string> &context, string &tgt_translation);		
+		double eval(vector<string> &context, string &tag);		
+		void eval_all(vector<double> &me_scores, vector<string> &context);		
+		int get_tagid(string tag);
 	private:
 		void load_bin(string &modelfile);
 		void load_txt(string &modelfile);
@@ -144,7 +146,7 @@ private:
 	ParseWordType _parsetype;           //切词的种类
 	UnknownWord _transUnkownWord;       //对未登录词的处理
 	//下面调序模型由张家俊09年1月5日添加
-	ReorderModel* m_me_reorder_model;
+	MaxentModel* m_me_reorder_model;
 	//下面基于上下文的翻译模型由李小青14年3月29日添加
 	vector <MaxentModel*> m_context_based_translation_models;
 	int m_reorder_window;                 //调序窗口的大小

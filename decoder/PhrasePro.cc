@@ -71,13 +71,35 @@ PhrasePro::ReadAlignment(const char* AlignmentFileName)
 			if (m_phraseTrie->value().at(i).viEnPhrase == en_index_vector)
 			{
 				num++;
+				//4debug
 				/*
-				for (size_t j=0;j<ch_word_vector.size();j++)
-					cout<<ch_word_vector.at(j)<<endl;
-				for (size_t j=0;j<en_word_vector.size();j++)
-					cout<<en_word_vector.at(j)<<endl;
+				for (size_t k=0; k<ch_word_vector.size(); k++)
+					cout<<ch_word_vector.at(k)<<" ";
+				cout<<endl;
+				for (size_t k=0; k<en_word_vector.size(); k++)
+					cout<<en_word_vector.at(k)<<" ";
+				cout<<endl;
+				vector<vector<int> > tmp = m_phraseTrie->value().at(i).ch_pos_to_en_pos_list;
+				cout<<tmp.size()<<endl;
+				for (size_t j=0; j<tmp.size(); j++)
+				{
+					for (size_t k=0; k<tmp.at(j).size(); k++)
+					{
+						cout<<j<<" "<<tmp.at(j).at(k)<<endl;
+					}
+				}
+				cout<<endl;
+				cout<<ch_pos_to_en_pos_list.size()<<endl;
+				for (size_t j=0; j<ch_pos_to_en_pos_list.size(); j++)
+				{
+					for (size_t k=0; k<ch_pos_to_en_pos_list.at(j).size(); k++)
+					{
+						cout<<j<<" "<<ch_pos_to_en_pos_list.at(j).at(k)<<endl;
+					}
+				}
+				cout<<endl;
 				*/
-				m_phraseTrie->value().at(i).ch_pos_to_en_pos_list = ch_pos_to_en_pos_list;
+				//m_phraseTrie->value().at(i).ch_pos_to_en_pos_list = ch_pos_to_en_pos_list;
 			}
 		}
 	}
@@ -205,6 +227,7 @@ PhrasePro::ReadFile(const char* PhraseProFileName, bool ReduceVoc, SegFormate se
 	    //contexts.findTrie(PhraseChiIndex)->value().push_back(m_PhraseTemp);	
 	    delete c_ch_index_vector;
 	    delete c_en_index_vector;
+	    delete c_alignment_vector;
 	}
 
 	

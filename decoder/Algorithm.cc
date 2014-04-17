@@ -129,7 +129,7 @@ void MaxentModel::load_txt(string &modelfile)
 	{
 		getline(fin,s);
 		TrimLine(s);
-		tag2id.insert(pair<string,int>(s,i));
+		tag2id.insert(make_pair(s,i));
 	}
 	featureAddrVec.resize(feature_num+1,0);
 	for (int i = 0; i<feature_num; i++)
@@ -153,21 +153,29 @@ void MaxentModel::load_txt(string &modelfile)
 	}
 }
 
-double MaxentModel::eval(vector<string> &context, string & outcome)
+int MaxentModel::get_tagid(string tag)
 {
-	int tagid = 0;
-	map <string,size_t>::iterator it = tag2id.find(outcome);
+	map <string,size_t>::iterator it = tag2id.find(tag);
 	if (it != tag2id.end())
 	{
-		tagid = it->second;
+		return it->second;
 	}
-	else
-	{
+	return -1;
+}
+
+double MaxentModel::eval(vector<string> &context, string & tag)
+{
+	int tagid = get_tagid(tag);
+	if (tagid == -1)
 		return -99;
-	}
-	//cout<<"tgt tanslation found\n";  //4debug
 	vector<double> probs;
-	probs.resize(tag_num, 0.0);
+	eval_all(probs,context);
+	return probs.at(tagid);
+}
+
+void MaxentModel::eval_all(vector<double> &me_scores, vector<string> &context)
+{
+	me_scores.resize(tag_num, 0.0);
 	
 	for (size_t i = 0; i < context.size(); i ++)
 	{
@@ -179,7 +187,7 @@ double MaxentModel::eval(vector<string> &context, string & outcome)
 			int num2 = featureAddrVec.at(featureid+1);
 			for (int j = num1; j < num2; j ++)
 			{
-				probs.at(lambda2tagVec.at(j)) += lambdaVec.at(j);
+				me_scores.at(lambda2tagVec.at(j)) += lambdaVec.at(j);
 			}
 		}
 		else
@@ -189,17 +197,17 @@ double MaxentModel::eval(vector<string> &context, string & outcome)
 	}
 	
 	double sum = 0.0;
-	for (size_t j = 0; j < probs.size(); j ++)
+	for (size_t j = 0; j < me_scores.size(); j ++)
 	{
-		probs.at(j) = exp(probs.at(j));
-		sum += probs.at(j);
+		me_scores.at(j) = exp(me_scores.at(j));
+		sum += me_scores.at(j);
 	}
 	
-	for (size_t k = 0; k < probs.size(); k ++)
+	for (size_t k = 0; k < me_scores.size(); k ++)
 	{
-		probs.at(k) /= sum; 
+		me_scores.at(k) /= sum; 
+		me_scores.at(k) = log10(me_scores.at(k)); 
 	}
-	return log10(probs.at(tagid));
 }
 
 /**********************************************************************************************/
@@ -228,13 +236,10 @@ Algorithm::Initialize(Config parameter)
 	m_split_best_vector = NULL;
 	m_other_space_vector = NULL;
 
-	//下面调序模型变量初始化由张家俊09年1月5日添加
-	m_me_reorder_model = new ReorderModel();
-	if(!m_me_reorder_model->ReadFile(parameter.reorder_model_filename.c_str()))
-	{
-	    cerr<<"Reading reordering model file Error!"<<endl;
-	    exit(-1);
-	}
+	//下面调序模型变量初始化由李小青2014年4月17日添加
+	m_me_reorder_model = new MaxentModel;
+	cout<<"load reorder model "<<parameter.reorder_model_filename<<endl;
+	m_me_reorder_model->load(parameter.reorder_model_filename);
 
 	//parameters
 	BEAM_HIST = parameter.beam_hist;
@@ -646,9 +651,30 @@ bool Algorithm::GenSearchSpace(vector< vector< pair<string,double> > > SenChiCN)
 							//增加基于上下文的翻译概率，李小青于14年3月31日添加
 							//此处中文端翻译单元为跨度为[i,j]的短语
 							vector <int> &en_ids = (*itbegin).viEnPhrase;
+							//4debug
+							/*
+							cout<<"ch phrase len: "<<j-i+1<<endl;
+							for (int k=i; k<=j; k++)
+								cout<<ch_word_vec.at(i-1)<<" ";
+							cout<<endl;
+							cout<<"en phrase len: "<<en_ids.size()-1<<endl;
+							for (int k=0; k<en_ids.size()-1; k++)
+								cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
+								//cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
+							cout<<endl;
+							*/
 							for (int k=i; k<=j; k++)
 							{
 								vector <int> en_pos_list = (*itbegin).ch_pos_to_en_pos_list.at(k-i);
+								//4debug
+								/*
+								for (size_t m=0; m<en_pos_list.size(); m++)
+								{
+									cout<<k-i<<"-"<<en_pos_list.at(m)<<" ";
+								}
+								cout<<endl;
+								*/
+
 								string tgt_translation;
 								if (en_pos_list.size() == 0)
 								{
@@ -1283,14 +1309,14 @@ bool Algorithm::MergeIntoEdge(s_SearchSpace* left_searchspace, s_SearchSpace* ri
 		int e12 = left_searchspace->viEnPhrase[c_left_size-1];
 		int e21 = right_searchspace->viEnPhrase[0];
 		int e22 = right_searchspace->viEnPhrase[c_right_size-1];
-		string c_feat_c11 = _pVocabChi->GetWord(_pulSenChi[c11]);
-		string c_feat_c12 = _pVocabChi->GetWord(_pulSenChi[c12]);
-		string c_feat_c21 = _pVocabChi->GetWord(_pulSenChi[c21]); 
-		string c_feat_c22 = _pVocabChi->GetWord(_pulSenChi[c22]); 
-		string c_feat_e11 = _pVocabEng->GetWord(e11);
-		string c_feat_e12 = _pVocabEng->GetWord(e12);
-		string c_feat_e21 = _pVocabEng->GetWord(e21);
-		string c_feat_e22 = _pVocabEng->GetWord(e22);
+		string c_feat_c11 = "c11=" + _pVocabChi->GetWord(_pulSenChi[c11]);
+		string c_feat_c12 = "c12=" + _pVocabChi->GetWord(_pulSenChi[c12]);
+		string c_feat_c21 = "c21=" + _pVocabChi->GetWord(_pulSenChi[c21]); 
+		string c_feat_c22 = "c22=" + _pVocabChi->GetWord(_pulSenChi[c22]); 
+		string c_feat_e11 = "e11=" + _pVocabEng->GetWord(e11);
+		string c_feat_e12 = "e12=" + _pVocabEng->GetWord(e12);
+		string c_feat_e21 = "e21=" + _pVocabEng->GetWord(e21);
+		string c_feat_e22 = "e22=" + _pVocabEng->GetWord(e22);
 		vector<string> c_feats_vector;
 		c_feats_vector.clear();
 		c_feats_vector.push_back(c_feat_c11);
@@ -1301,22 +1327,21 @@ bool Algorithm::MergeIntoEdge(s_SearchSpace* left_searchspace, s_SearchSpace* ri
 		c_feats_vector.push_back(c_feat_c22);
 		c_feats_vector.push_back(c_feat_e12);
 		c_feats_vector.push_back(c_feat_e22);
-		vector<double> c_reorder_prob_vector = m_me_reorder_model->predict(c_feats_vector);
+		//使用统一的最大熵模型，由李小青2014年4月17日添加
+		vector<double> c_reorder_prob_vector;
+		m_me_reorder_model->eval_all(c_reorder_prob_vector,c_feats_vector);
 		if( c_reorder_prob_vector.size() != 2 )
 		{
 			cerr<<"Computing reorder prob Error!"<<endl;
 			exit(-1);
 		}
-		if( m_me_reorder_model->inOrder )
-		{
-			c_straight_prob = log10(c_reorder_prob_vector[0]);
-			c_invert_prob = log10(c_reorder_prob_vector[1]);
-		}
-		else
-		{
-			c_straight_prob = log10(c_reorder_prob_vector[1]);
-			c_invert_prob = log10(c_reorder_prob_vector[0]);
-		}
+		c_straight_prob = c_reorder_prob_vector[m_me_reorder_model->get_tagid("straight")];
+		c_invert_prob = c_reorder_prob_vector[m_me_reorder_model->get_tagid("inverted")];
+		//4debug
+		/*
+		cout<<"c_straight_prob: "<<c_straight_prob<<endl;
+		cout<<"c_invert_prob: "<<c_invert_prob<<endl;
+		*/
 	}
 
     c_tmp_searchspace->ulFirstWord = left_searchspace->ulFirstWord;
