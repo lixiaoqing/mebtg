@@ -22,6 +22,7 @@ s_PhrasePro::operator =(const s_PhrasePro &right)
 // 	dpec = right.dpec;
 // 	dlec = right.dlec;
 	eachTransPro = right.eachTransPro;
+	ch_pos_to_en_pos_list = right.ch_pos_to_en_pos_list;
 
 	return *this;
 }
