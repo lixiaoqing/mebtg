@@ -163,31 +163,8 @@ PhrasePro::ReadFile(const char* PhraseProFileName, bool ReduceVoc, SegFormate se
 	    {
 		    int ch_pos = c_alignment_vector[2*i];
 		    int en_pos = c_alignment_vector[2*i+1];
-		    //cout<<ch_pos<<"-"<<en_pos<<" ";  //4debug
 		    m_PhraseTemp.ch_pos_to_en_pos_list[ch_pos].push_back(en_pos);
 	    }
-	    //cout<<endl;  //4debug
-	    //4debug
-	    /*
-	    for (int i=0; i<c_ch_word_counts; i++)
-	    {
-		    cout<<_ChiVocab->GetWord(c_ch_index_vector[i])<<" ";
-	    }
-	    cout<<"||| ";
-	    for (int i=0; i<c_en_word_counts; i++)
-	    {
-		    cout<<_EngVocab->GetWord(c_en_index_vector[i])<<" ";
-	    }
-	    cout<<"||| ";
-            for(size_t i=0;i<m_PhraseTemp.ch_pos_to_en_pos_list.size();i++)
-	    {
-		    for (size_t j=0; j<m_PhraseTemp.ch_pos_to_en_pos_list.at(i).size(); j++)
-		    {
-			    cout<<i<<"-"<<m_PhraseTemp.ch_pos_to_en_pos_list.at(i).at(j)<<" ";
-		    }
-	    }
-	    cout<<endl;
-	    */
 
             for(size_t i=0;i<m_PhraseTemp.ulEnNum+1;i++)
                 m_PhraseTemp.viEnPhrase.push_back(c_en_index_vector[i]);
