@@ -315,11 +315,13 @@ Algorithm::Initialize(Config parameter)
 	}
 
 	//为每个短语对读取词对齐信息，由李小青2014年4月4日添加
+	/*
 	if ( !_pstPhrasePro->ReadAlignment("data/phrase-table") )
 	{
 		cerr<<"reading alignment file error!\n";
 		return 0;
 	}
+	*/
 
 	_pNgram = NULL;
 	//read LM file
@@ -644,9 +646,30 @@ bool Algorithm::GenSearchSpace(vector< vector< pair<string,double> > > SenChiCN)
 							//增加基于上下文的翻译概率，李小青于14年3月31日添加
 							//此处中文端翻译单元为跨度为[i,j]的短语
 							vector <int> &en_ids = (*itbegin).viEnPhrase;
+							//4debug
+							/*
+							cout<<"ch phrase len: "<<j-i+1<<endl;
+							for (int k=i; k<=j; k++)
+								cout<<ch_word_vec.at(i-1)<<" ";
+							cout<<endl;
+							cout<<"en phrase len: "<<en_ids.size()-1<<endl;
+							for (int k=0; k<en_ids.size()-1; k++)
+								cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
+								//cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
+							cout<<endl;
+							*/
 							for (int k=i; k<=j; k++)
 							{
 								vector <int> en_pos_list = (*itbegin).ch_pos_to_en_pos_list.at(k-i);
+								//4debug
+								/*
+								for (size_t m=0; m<en_pos_list.size(); m++)
+								{
+									cout<<k-i<<"-"<<en_pos_list.at(m)<<" ";
+								}
+								cout<<endl;
+								*/
+
 								string tgt_translation;
 								if (en_pos_list.size() == 0)
 								{
@@ -1237,12 +1260,9 @@ double Algorithm::GetContextBasedTranslationProb(int pos, string &tgt_translatio
 	vector <string> context;
 	for (int i=left_bound; i<=right_bound; i++)
 	{
-		stringstream ss;
-		string s;
-		ss<<(i-pos);
-		ss>>s;
-		//cout<<s+"/"+ch_word_vec.at(i)<<endl; //4debug
-		context.push_back(s+"/"+ch_word_vec.at(i));
+		string ralative_pos = i2s(i-pos);
+		//cout<<ralative_pos+"/"+ch_word_vec.at(i)<<endl; //4debug
+		context.push_back(ralative_pos+"/"+ch_word_vec.at(i));
 	}
 	return m_context_based_translation_models.at(cur_word_id)->eval(context,tgt_translation);
 }

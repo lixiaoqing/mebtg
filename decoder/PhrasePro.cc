@@ -71,13 +71,35 @@ PhrasePro::ReadAlignment(const char* AlignmentFileName)
 			if (m_phraseTrie->value().at(i).viEnPhrase == en_index_vector)
 			{
 				num++;
+				//4debug
 				/*
-				for (size_t j=0;j<ch_word_vector.size();j++)
-					cout<<ch_word_vector.at(j)<<endl;
-				for (size_t j=0;j<en_word_vector.size();j++)
-					cout<<en_word_vector.at(j)<<endl;
+				for (size_t k=0; k<ch_word_vector.size(); k++)
+					cout<<ch_word_vector.at(k)<<" ";
+				cout<<endl;
+				for (size_t k=0; k<en_word_vector.size(); k++)
+					cout<<en_word_vector.at(k)<<" ";
+				cout<<endl;
+				vector<vector<int> > tmp = m_phraseTrie->value().at(i).ch_pos_to_en_pos_list;
+				cout<<tmp.size()<<endl;
+				for (size_t j=0; j<tmp.size(); j++)
+				{
+					for (size_t k=0; k<tmp.at(j).size(); k++)
+					{
+						cout<<j<<" "<<tmp.at(j).at(k)<<endl;
+					}
+				}
+				cout<<endl;
+				cout<<ch_pos_to_en_pos_list.size()<<endl;
+				for (size_t j=0; j<ch_pos_to_en_pos_list.size(); j++)
+				{
+					for (size_t k=0; k<ch_pos_to_en_pos_list.at(j).size(); k++)
+					{
+						cout<<j<<" "<<ch_pos_to_en_pos_list.at(j).at(k)<<endl;
+					}
+				}
+				cout<<endl;
 				*/
-				m_phraseTrie->value().at(i).ch_pos_to_en_pos_list = ch_pos_to_en_pos_list;
+				//m_phraseTrie->value().at(i).ch_pos_to_en_pos_list = ch_pos_to_en_pos_list;
 			}
 		}
 	}
@@ -124,11 +146,49 @@ PhrasePro::ReadFile(const char* PhraseProFileName, bool ReduceVoc, SegFormate se
 	    fread(c_trans_prob,sizeof(double),4,m_pfPhraseProFile);
             //for(size_t i=0;i<4;i++)
              //   cout<<c_trans_prob[i]<<endl;
+	     //从短语表中读取词对齐信息，由李小青2014年4月16添加
+	    short int c_alignment_num=0;
+	    fread(&c_alignment_num,sizeof(short int),1,m_pfPhraseProFile);
+	    int *c_alignment_vector=new int[c_alignment_num];
+	    fread(c_alignment_vector,sizeof(int),c_alignment_num,m_pfPhraseProFile);
 
 	    s_PhrasePro m_PhraseTemp;
             m_PhraseTemp.ulEnNum=c_en_word_counts;
             if(m_PhraseTemp.ulEnNum > PHRASE_LEN_MAX)
                 continue;
+
+	    //将对齐信息添加到短语候选中去
+	    m_PhraseTemp.ch_pos_to_en_pos_list.resize(c_ch_word_counts);
+            for(size_t i=0;i<c_alignment_num/2;i++)
+	    {
+		    int ch_pos = c_alignment_vector[2*i];
+		    int en_pos = c_alignment_vector[2*i+1];
+		    //cout<<ch_pos<<"-"<<en_pos<<" ";  //4debug
+		    m_PhraseTemp.ch_pos_to_en_pos_list[ch_pos].push_back(en_pos);
+	    }
+	    //cout<<endl;  //4debug
+	    //4debug
+	    /*
+	    for (int i=0; i<c_ch_word_counts; i++)
+	    {
+		    cout<<_ChiVocab->GetWord(c_ch_index_vector[i])<<" ";
+	    }
+	    cout<<"||| ";
+	    for (int i=0; i<c_en_word_counts; i++)
+	    {
+		    cout<<_EngVocab->GetWord(c_en_index_vector[i])<<" ";
+	    }
+	    cout<<"||| ";
+            for(size_t i=0;i<m_PhraseTemp.ch_pos_to_en_pos_list.size();i++)
+	    {
+		    for (size_t j=0; j<m_PhraseTemp.ch_pos_to_en_pos_list.at(i).size(); j++)
+		    {
+			    cout<<i<<"-"<<m_PhraseTemp.ch_pos_to_en_pos_list.at(i).at(j)<<" ";
+		    }
+	    }
+	    cout<<endl;
+	    */
+
             for(size_t i=0;i<m_PhraseTemp.ulEnNum+1;i++)
                 m_PhraseTemp.viEnPhrase.push_back(c_en_index_vector[i]);
 
@@ -190,6 +250,7 @@ PhrasePro::ReadFile(const char* PhraseProFileName, bool ReduceVoc, SegFormate se
 	    //contexts.findTrie(PhraseChiIndex)->value().push_back(m_PhraseTemp);	
 	    delete c_ch_index_vector;
 	    delete c_en_index_vector;
+	    delete c_alignment_vector;
 	}
 
 	
