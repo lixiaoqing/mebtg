@@ -1,0 +1,3 @@
+Why should phrase table be stored in TRIE?
+1. for a given word sequence abcde..., we can find all the sub-sequence starting from a by ONE lookup
+2. more importantly, we can safely stop lookup when no longer prefix match can be found, however, for map/hashmap, we cannot stop we 'ab' is not found, since abc can still be found
