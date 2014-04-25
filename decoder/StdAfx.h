@@ -24,8 +24,6 @@
 #include <functional>
 
 
-using namespace std;
-
 #include <stdio.h>
 #include <math.h>
 #include <time.h>
@@ -33,6 +31,8 @@ using namespace std;
 #include <string.h>
 #include <pthread.h>
 
+
+using namespace std;
 
 const int WORD_LEN_MAX=100;
 const int SEN_LEN_MAX = 500;			  //句子的最大长度(单词数)

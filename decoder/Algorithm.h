@@ -7,8 +7,7 @@
 #define ALGORITHM_H
 
 #include "StdAfx.h"
-#include "PhraseProTrie.h"
-#include "PhrasePro.h"
+#include "HashPhraseTable.h"
 #include "SearchSpaceStock.h"
 #include "HypoStack.h"
 #include "Vocab.h"
@@ -86,16 +85,6 @@ struct SearchSpaceComp: public binary_function<s_SearchSpace, s_SearchSpace, boo
     }
 };
 
-class CNPhraseNode
-{
-public:
-	int position;
-	PhraseProTrie* pPhrase;
-	double CNprob;
-	double LMprob;
-	int LastWord;
-};
-
 
 class Algorithm 
 {
@@ -119,7 +108,7 @@ private:
 	//Vocab* _pVocabEng;					//英文单词表
 	LanguageModel* _pNgram;						//英文语言模型
 	int NgramOrder;
-	PhrasePro* _pstPhrasePro;			//phrase翻译概率
+	HashPhraseTable* _pstPhrasePro;			//phrase翻译概率
 	Lambda all_Lambda;					//特征的权重
 
 	int BEAM_HIST;					//beam容量剪枝

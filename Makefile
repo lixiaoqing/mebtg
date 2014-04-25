@@ -42,7 +42,7 @@ lm/virtual_interface.o:lm/virtual_interface.cc
 lm/vocab.o:lm/vocab.cc
 	g++ -I. -O2 -DNDEBUG  -c lm/vocab.cc -o lm/vocab.o -l pthread -w
 decoder/Algorithm.o:decoder/Algorithm.cc
-	g++ -I. -O2 -DNDEBUG  -c decoder/Algorithm.cc -o decoder/Algorithm.o -l pthread -w
+	g++ -I. -O2 -DNDEBUG  -c decoder/Algorithm.cc -o decoder/Algorithm.o -l pthread -w -std=c++11
 decoder/HypoStack.o:decoder/HypoStack.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/HypoStack.cc -o decoder/HypoStack.o -l pthread -w
 decoder/ff_klm.o:decoder/ff_klm.cc
@@ -53,12 +53,14 @@ decoder/NgramTrie.o:decoder/NgramTrie.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/NgramTrie.cc -o decoder/NgramTrie.o -l pthread -w
 decoder/PhrasePro.o:decoder/PhrasePro.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/PhrasePro.cc -o decoder/PhrasePro.o -l pthread -w
+decoder/HashPhraseTable.o:decoder/HashPhraseTable.cc
+	g++ -I. -O2 -DNDEBUG  -c decoder/HashPhraseTable.cc -o decoder/HashPhraseTable.o -l pthread -w -std=c++11
 decoder/PhraseProTrie.o:decoder/PhraseProTrie.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/PhraseProTrie.cc -o decoder/PhraseProTrie.o -l pthread -w
 decoder/SearchSpaceStock.o:decoder/SearchSpaceStock.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/SearchSpaceStock.cc -o decoder/SearchSpaceStock.o -l pthread -w
 decoder/Translator.o:decoder/Translator.cc
-	g++ -I. -O2 -DNDEBUG  -c decoder/Translator.cc -o decoder/Translator.o -l pthread -w
+	g++ -I. -O2 -DNDEBUG  -c decoder/Translator.cc -o decoder/Translator.o -l pthread -w -std=c++11
 decoder/Vocab.o:decoder/Vocab.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/Vocab.cc -o decoder/Vocab.o -l pthread -w
 decoder/Candidate.o:decoder/Candidate.cc
@@ -70,10 +72,10 @@ decoder/MePredict.o:decoder/MePredict.cc
 decoder/myutils.o:decoder/myutils.cc
 	g++ -I. -O2 -DNDEBUG  -c decoder/myutils.cc -o decoder/myutils.o -l pthread -w
 
-objs = util/bit_packing.o util/ersatz_progress.o util/exception.o util/file_piece.o util/murmur_hash.o util/file.o util/mmap.o lm/bhiksha.o lm/binary_format.o lm/config.o lm/lm_exception.o lm/model.o lm/quantize.o lm/read_arpa.o lm/search_hashed.o lm/search_trie.o lm/trie.o lm/trie_sort.o lm/virtual_interface.o lm/vocab.o decoder/Algorithm.o decoder/HypoStack.o decoder/ff_klm.o decoder/Ngram.o decoder/NgramTrie.o decoder/PhrasePro.o decoder/PhraseProTrie.o decoder/SearchSpaceStock.o decoder/Translator.o decoder/Vocab.o decoder/Candidate.o decoder/Feature.o decoder/MePredict.o decoder/myutils.o
+objs = util/bit_packing.o util/ersatz_progress.o util/exception.o util/file_piece.o util/murmur_hash.o util/file.o util/mmap.o lm/bhiksha.o lm/binary_format.o lm/config.o lm/lm_exception.o lm/model.o lm/quantize.o lm/read_arpa.o lm/search_hashed.o lm/search_trie.o lm/trie.o lm/trie_sort.o lm/virtual_interface.o lm/vocab.o decoder/Algorithm.o decoder/HypoStack.o decoder/ff_klm.o decoder/Ngram.o decoder/NgramTrie.o decoder/PhrasePro.o decoder/PhraseProTrie.o decoder/SearchSpaceStock.o decoder/Translator.o decoder/Vocab.o decoder/Candidate.o decoder/Feature.o decoder/MePredict.o decoder/myutils.o decoder/HashPhraseTable.o
 objs1 = util/bit_packing.o util/ersatz_progress.o util/exception.o util/file_piece.o util/murmur_hash.o util/file.o util/mmap.o lm/bhiksha.o lm/binary_format.o lm/config.o lm/lm_exception.o lm/model.o lm/quantize.o lm/read_arpa.o lm/search_hashed.o lm/search_trie.o lm/trie.o lm/trie_sort.o lm/virtual_interface.o lm/vocab.o
 mebtg:$(objs)
-	g++ -I. -O2 -static $(objs) -lz -o mebtgDecoderMultiThreads.debug -l pthread -w
+	g++ -I. -O2 -static $(objs) -lz -o mebtgDecoderMultiThreads.debug -l pthread -w -std=c++11
 build_binary:$(objs1)
 	g++ -I. -O2 -DNDEBUG lm/build_binary.cc $(objs1) -lz -o build_binary -w
 query:$(objs1)

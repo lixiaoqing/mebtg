@@ -286,7 +286,7 @@ Algorithm::Initialize(Config parameter)
 	_pVocabChi = new Vocab(parameter.sourcevocabfilename.c_str());
 	_pVocabEng = new Vocab(parameter.targetvocabfilename.c_str());
 
-	_pstPhrasePro = new PhrasePro(_pVocabChi, _pVocabEng, TRAN_TABLE_SIZE);
+	_pstPhrasePro = new HashPhraseTable(_pVocabChi, _pVocabEng, TRAN_TABLE_SIZE);
 	
 	//下面基于上下文的翻译模型变量初始化由李小青14年3月29日添加
 	m_context_based_translation_models.resize(_pVocabChi->size(),NULL);
@@ -529,7 +529,7 @@ int Algorithm::NPParsing( char** words, int &SenLen )
 //
 bool Algorithm::GenSearchSpace(vector< vector< pair<string,double> > > SenChiCN)
 {
-	PhraseProTrie *m_PhraseTrie;        //记录节点
+	vector<TgtPhrase>* tgt_phrase_list_ptr = nullptr;        //记录节点
 	s_SearchSpace* m_SearchSpaceTemp;
 	char m_pcSenChi[SEN_CHAR_MAX];
 	char* words[SEN_LEN_MAX+1];
@@ -538,242 +538,193 @@ bool Algorithm::GenSearchSpace(vector< vector< pair<string,double> > > SenChiCN)
 		words[k] = new char[WORD_LEN_MAX+1];
 	}
 	//normal text
+	int i=0, j=0;            //记录词的位置
+	int len=0;               //短语的长度
+
+	//for(size_t k=0;k<Vocab::length(_pulSenChi);k++)
+	   //cout<<_pulSenChi[k]<<" ";
+	//cout<<endl;
+	for(i=1; i<= _ulSenLenChi; i++)		//起始位置,表示中文句子词号的数组从1开始
 	{
-		int i=0, j=0;            //记录词的位置
-		int len=0;               //短语的长度
-
-		//for(size_t k=0;k<Vocab::length(_pulSenChi);k++)
-		//   cout<<_pulSenChi[k]<<" ";
-		//cout<<endl;
-		for(i=1; i<= _ulSenLenChi; i++)		//起始位置,表示中文句子词号的数组从1开始
+		//bool m_bTemp = false;
+		for(j=i, len = 0; j<=_ulSenLenChi && len<PHRASE_LEN_MAX;j++,len++ )	//当前词的位置
 		{
-			//bool m_bTemp = false;
-			for(j=i, len = 0; j<=_ulSenLenChi && len<PHRASE_LEN_MAX;j++,len++ )	//当前词的位置
+			if( _bitClosed.test(j) )
 			{
-				if( _bitClosed.test(j) )
+				break;
+			}
+			//cerr<<_pulSenChi[j]<<" "<<len<<endl;;
+			vector<int> src_phrase_idx;
+			src_phrase_idx.clear();
+			for (int k=i; k<=j; k++)
+			{
+				src_phrase_idx.push_back(_pulSenChi[k]);
+			}
+			tgt_phrase_list_ptr = _pstPhrasePro->find_src_phrase(src_phrase_idx);
+			if (tgt_phrase_list_ptr != nullptr)
+			{
+				vector<TgtPhrase>::iterator itbegin=tgt_phrase_list_ptr->begin(), itend=tgt_phrase_list_ptr->end();
+				for( ; itbegin!=itend; itbegin++)
 				{
-					break;
-				}
-				//cerr<<_pulSenChi[j]<<" "<<len<<endl;;
-				if( len == 0 )
-					m_PhraseTrie = _pstPhrasePro->findword(_pulSenChi[j]); 
-				else
-					m_PhraseTrie = m_PhraseTrie->findTrie(_pulSenChi[j]);
+					m_SearchSpaceTemp = new s_SearchSpace();
+					m_hypo_collection.push_back(m_SearchSpaceTemp);
+					m_SearchSpaceTemp->ulFirstWord = i;
+					m_SearchSpaceTemp->ulLastWord = j;
+					m_SearchSpaceTemp->ulEnNum = (*itbegin).ulEnNum;
+					m_SearchSpaceTemp->dPro = (*itbegin).dPro;
 
-				//如果在翻译概率表中有这个短语，将所有的翻译候选项放入到搜索候选项栈中
-				if( m_PhraseTrie )                                             //按照上面的插入方式，可能不存在么?
-				{
-					if( !m_PhraseTrie->value().size()  && len == 0 )       //未登录词，即该短语没有翻译候选，且短语长度为1
+					m_SearchSpaceTemp->eachTransPro = (*itbegin).eachTransPro;
+
+					m_SearchSpaceTemp->viEnPhrase.clear();
+					if((*itbegin).viEnPhrase.size() > 1)
 					{
-						m_SearchSpaceTemp = new s_SearchSpace();
-						m_hypo_collection.push_back(m_SearchSpaceTemp);
-						m_SearchSpaceTemp->ulFirstWord = i;
-						m_SearchSpaceTemp->ulLastWord = j;
-						m_SearchSpaceTemp->ulEnNum = 1;
-
-						m_SearchSpaceTemp->eachTransPro.resize( all_Lambda.trans.size() );
-						fill(m_SearchSpaceTemp->eachTransPro.begin(), m_SearchSpaceTemp->eachTransPro.end(), LogP_PseudoZero);
-
-						m_SearchSpaceTemp->dPro = 0;
-						for (int m_i=0; m_i<(int)all_Lambda.trans.size(); m_i++ )
+						for( int i=0; i<(*itbegin).viEnPhrase.size()-1; i++ )
 						{
-							m_SearchSpaceTemp->dPro += all_Lambda.trans[m_i] * m_SearchSpaceTemp->eachTransPro[m_i];
+							m_SearchSpaceTemp->viEnPhrase.push_back( (*itbegin).viEnPhrase[i] );
+							m_SearchSpaceTemp->m_en_str += _pVocabEng->GetWord((*itbegin).viEnPhrase[i]);
+							if( i != (*itbegin).viEnPhrase.size()-2 )
+								m_SearchSpaceTemp->m_en_str += " ";
 						}
+					}
+					else
+					{
+						m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->UnNull() );
+						m_SearchSpaceTemp->m_en_str = g_Vocab_NULL;
+					}
+					//cerr<<"Error here!"<<endl;
+					//下面几个参数计算由张家俊08年12月25日添加
+					m_SearchSpaceTemp->m_phrase_num = 1;
+					vector<int> wids = m_SearchSpaceTemp->viEnPhrase;
+					//cerr<<"before language model computing 2:\n";
+					if( NULL == _pNgram )
+					{
+						cerr<<"back new for ngram!\n";
+						exit(1);
+					}
+					m_SearchSpaceTemp->m_en_ngram_prob =  _pNgram->TraversalFeaturesImpl(m_SearchSpaceTemp) ;
+					//cerr<<"after language model computing 2:\n";
+					//增加基于上下文的翻译概率，李小青于14年3月31日添加
+					//此处中文端翻译单元为跨度为[i,j]的短语
+					vector <int> &en_ids = (*itbegin).viEnPhrase;
+					//4debug
+					/*
+					   cout<<"ch phrase len: "<<j-i+1<<endl;
+					   for (int k=i; k<=j; k++)
+					   cout<<ch_word_vec.at(i-1)<<" ";
+					   cout<<endl;
+					   cout<<"en phrase len: "<<en_ids.size()-1<<endl;
+					   for (int k=0; k<en_ids.size()-1; k++)
+					   cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
+					//cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
+					cout<<endl;
+					*/
+					for (int k=i; k<=j; k++)
+					{
+						vector <int> en_pos_list = (*itbegin).ch_pos_to_en_pos_list.at(k-i);
+						//4debug
+						/*
+						   for (size_t m=0; m<en_pos_list.size(); m++)
+						   {
+						   cout<<k-i<<"-"<<en_pos_list.at(m)<<" ";
+						   }
+						   cout<<endl;
+						   */
 
-						if( _transUnkownWord == NULLWORD )
+						string tgt_translation;
+						if (en_pos_list.size() == 0)
 						{
-							m_SearchSpaceTemp->viEnPhrase.clear();
-							//下面的修改由张家俊08年12月31日完成
-							m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->UnNull() );
-							m_SearchSpaceTemp->m_en_str = g_Vocab_NULL;
+							tgt_translation = "NULL";
 						}
 						else
 						{
-							m_SearchSpaceTemp->viEnPhrase.clear();
-							m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->GetAndInsertIndex(_pVocabChi->GetWord( _pulSenChi[i] ).c_str()) );
-							m_SearchSpaceTemp->m_en_str = _pVocabChi->GetWord(_pulSenChi[i]);
-						}
-						//下面几个参数计算由张家俊08年12月25日添加
-						m_SearchSpaceTemp->m_phrase_num = 1;
-						vector<int> wids = m_SearchSpaceTemp->viEnPhrase;
-						//cerr<<"before language model computing 1:\n";
-						m_SearchSpaceTemp->m_en_ngram_prob =  _pNgram->TraversalFeaturesImpl(m_SearchSpaceTemp) ;
-						//cerr<<"after language model computing 1:\n";
-
-						m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob;
-						_pstSearchSpace[i][len].Update(m_SearchSpaceTemp);
-
-					}
-					//m_bTemp = true;
-
-					else
-					{
-						vector<s_PhrasePro>::iterator itbegin=m_PhraseTrie->value().begin(), itend=m_PhraseTrie->value().end();
-						for( ; itbegin!=itend; itbegin++)
-						{
-							m_SearchSpaceTemp = new s_SearchSpace();
-							m_hypo_collection.push_back(m_SearchSpaceTemp);
-							m_SearchSpaceTemp->ulFirstWord = i;
-							m_SearchSpaceTemp->ulLastWord = j;
-							m_SearchSpaceTemp->ulEnNum = (*itbegin).ulEnNum;
-							m_SearchSpaceTemp->dPro = (*itbegin).dPro;
-
-							m_SearchSpaceTemp->eachTransPro = (*itbegin).eachTransPro;
-
-							m_SearchSpaceTemp->viEnPhrase.clear();
-							if((*itbegin).viEnPhrase.size() > 1)
+							tgt_translation = _pVocabEng->GetWord(en_ids[en_pos_list.at(0)]);
+							for (size_t l=1; l<en_pos_list.size(); l++)
 							{
-								for( int i=0; i<(*itbegin).viEnPhrase.size()-1; i++ )
-								{
-									m_SearchSpaceTemp->viEnPhrase.push_back( (*itbegin).viEnPhrase[i] );
-									m_SearchSpaceTemp->m_en_str += _pVocabEng->GetWord((*itbegin).viEnPhrase[i]);
-									if( i != (*itbegin).viEnPhrase.size()-2 )
-										m_SearchSpaceTemp->m_en_str += " ";
-								}
+								tgt_translation += "_" + _pVocabEng->GetWord(en_ids[en_pos_list.at(l)]);
 							}
-							else
-							{
-								m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->UnNull() );
-								m_SearchSpaceTemp->m_en_str = g_Vocab_NULL;
-							}
-							//cerr<<"Error here!"<<endl;
-							//下面几个参数计算由张家俊08年12月25日添加
-							m_SearchSpaceTemp->m_phrase_num = 1;
-							vector<int> wids = m_SearchSpaceTemp->viEnPhrase;
-							//cerr<<"before language model computing 2:\n";
-							if( NULL == _pNgram )
-							{
-								cerr<<"back new for ngram!\n";
-								exit(1);
-							}
-							m_SearchSpaceTemp->m_en_ngram_prob =  _pNgram->TraversalFeaturesImpl(m_SearchSpaceTemp) ;
-							//cerr<<"after language model computing 2:\n";
-							//增加基于上下文的翻译概率，李小青于14年3月31日添加
-							//此处中文端翻译单元为跨度为[i,j]的短语
-							vector <int> &en_ids = (*itbegin).viEnPhrase;
-							//4debug
 							/*
-							cout<<"ch phrase len: "<<j-i+1<<endl;
-							for (int k=i; k<=j; k++)
-								cout<<ch_word_vec.at(i-1)<<" ";
-							cout<<endl;
-							cout<<"en phrase len: "<<en_ids.size()-1<<endl;
-							for (int k=0; k<en_ids.size()-1; k++)
-								cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
-								//cout<<_pVocabEng->GetWord(en_ids.at(k))<<" ";
-							cout<<endl;
-							*/
-							for (int k=i; k<=j; k++)
-							{
-								vector <int> en_pos_list = (*itbegin).ch_pos_to_en_pos_list.at(k-i);
-								//4debug
-								/*
-								for (size_t m=0; m<en_pos_list.size(); m++)
-								{
-									cout<<k-i<<"-"<<en_pos_list.at(m)<<" ";
-								}
-								cout<<endl;
-								*/
-
-								string tgt_translation;
-								if (en_pos_list.size() == 0)
-								{
-									tgt_translation = "NULL";
-								}
-								else
-								{
-									tgt_translation = _pVocabEng->GetWord(en_ids[en_pos_list.at(0)]);
-									for (size_t l=1; l<en_pos_list.size(); l++)
-									{
-										tgt_translation += "_" + _pVocabEng->GetWord(en_ids[en_pos_list.at(l)]);
-									}
-									/*
-									for (size_t l=0; l<en_pos_list.size(); l++)  //4debug
-									{
-										cout<<en_pos_list.at(l)<<' '<<_pVocabEng->GetWord(en_ids[en_pos_list.at(l)])<<'\t';
-									}
-									*/
-								}
-								//cout<<"tgt translation:" << tgt_translation<<endl;  //4debug
-								m_SearchSpaceTemp->m_context_based_trans_prob += GetContextBasedTranslationProb(k-1,tgt_translation);
-								//cout<<"cand at each word, m_context_based_trans_prob: "<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
-								//cout<<ch_word_vec.at(k-1)<<" ||| "<<tgt_translation<<'\t'<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
-							}
-							m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob + all_Lambda.sense*m_SearchSpaceTemp->m_context_based_trans_prob;
-							if( m_SearchSpaceTemp->viEnPhrase[m_SearchSpaceTemp->viEnPhrase.size()-1] == -1 )
-								cerr<<i<<" "<<len<<" "<<"Word Id Error!"<<endl;
-							_pstSearchSpace[i][len].Update(m_SearchSpaceTemp);
+							   for (size_t l=0; l<en_pos_list.size(); l++)  //4debug
+							   {
+							   cout<<en_pos_list.at(l)<<' '<<_pVocabEng->GetWord(en_ids[en_pos_list.at(l)])<<'\t';
+							   }
+							   */
 						}
-
+						//cout<<"tgt translation:" << tgt_translation<<endl;  //4debug
+						m_SearchSpaceTemp->m_context_based_trans_prob += GetContextBasedTranslationProb(k-1,tgt_translation);
+						//cout<<"cand at each word, m_context_based_trans_prob: "<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
+						//cout<<ch_word_vec.at(k-1)<<" ||| "<<tgt_translation<<'\t'<<m_SearchSpaceTemp->m_context_based_trans_prob<<endl;  //4debug
 					}
+					m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob + all_Lambda.sense*m_SearchSpaceTemp->m_context_based_trans_prob;
+					if( m_SearchSpaceTemp->viEnPhrase[m_SearchSpaceTemp->viEnPhrase.size()-1] == -1 )
+						cerr<<i<<" "<<len<<" "<<"Word Id Error!"<<endl;
+					_pstSearchSpace[i][len].Update(m_SearchSpaceTemp);
+				}
 
-				}
-				else
-				{
-					break;
-				}
+
 			}
-			if(  !_bitClosed.test(i) && len == 0)                                 //该词为未登录词，则翻译为NULL
+			else
 			{
-				m_SearchSpaceTemp = new s_SearchSpace();
-				m_hypo_collection.push_back(m_SearchSpaceTemp);
-				m_SearchSpaceTemp->ulFirstWord = i;
-				m_SearchSpaceTemp->ulLastWord = i;
-				m_SearchSpaceTemp->ulEnNum = 1;
-
-
-				m_SearchSpaceTemp->eachTransPro.resize( all_Lambda.trans.size() );
-				fill(m_SearchSpaceTemp->eachTransPro.begin(), m_SearchSpaceTemp->eachTransPro.end(), LogP_PseudoZero);
-
-				m_SearchSpaceTemp->dPro = 0;
-				for (int m_i=0; m_i<(int)all_Lambda.trans.size(); m_i++ )
-				{
-					m_SearchSpaceTemp->dPro += all_Lambda.trans[m_i] * m_SearchSpaceTemp->eachTransPro[m_i];
-				}
-
-
-				if( _transUnkownWord == NULLWORD )
-				{
-					m_SearchSpaceTemp->viEnPhrase.clear();
-					//下面两行由张家俊08年12月31日修改
-					m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->UnNull() );
-					m_SearchSpaceTemp->m_en_str = g_Vocab_NULL;
-				}
-				else
-				{
-					m_SearchSpaceTemp->viEnPhrase.clear();
-					m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->GetAndInsertIndex(_pVocabChi->GetWord( _pulSenChi[i] ).c_str()) );
-					m_SearchSpaceTemp->m_en_str = _pVocabChi->GetWord(_pulSenChi[i]);
-				}
-				//下面几个参数计算由张家俊08年12月25日添加
-				m_SearchSpaceTemp->m_phrase_num = 1;
-				vector<int> wids = m_SearchSpaceTemp->viEnPhrase;
-				//cerr<<"before language model computing 3:\n";
-				m_SearchSpaceTemp->m_en_ngram_prob =  _pNgram->TraversalFeaturesImpl(m_SearchSpaceTemp) ;
-				//cerr<<"after language model computing 3:\n";
-				m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob;
-				if( m_SearchSpaceTemp->viEnPhrase[m_SearchSpaceTemp->viEnPhrase.size()-1] == -1 )
-					cerr<<i<<" "<<len<<" "<<"Word Id Error!"<<endl;
-				_pstSearchSpace[i][len].Update(m_SearchSpaceTemp);
-
-
+				break;
 			}
 		}
+		if(  !_bitClosed.test(i) && len == 0)                                 //该词为未登录词，则翻译为NULL
+		{
+			m_SearchSpaceTemp = new s_SearchSpace();
+			m_hypo_collection.push_back(m_SearchSpaceTemp);
+			m_SearchSpaceTemp->ulFirstWord = i;
+			m_SearchSpaceTemp->ulLastWord = i;
+			m_SearchSpaceTemp->ulEnNum = 1;
 
+
+			m_SearchSpaceTemp->eachTransPro.resize( all_Lambda.trans.size() );
+			fill(m_SearchSpaceTemp->eachTransPro.begin(), m_SearchSpaceTemp->eachTransPro.end(), LogP_PseudoZero);
+
+			m_SearchSpaceTemp->dPro = 0;
+			for (int m_i=0; m_i<(int)all_Lambda.trans.size(); m_i++ )
+			{
+				m_SearchSpaceTemp->dPro += all_Lambda.trans[m_i] * m_SearchSpaceTemp->eachTransPro[m_i];
+			}
+
+
+			if( _transUnkownWord == NULLWORD )
+			{
+				m_SearchSpaceTemp->viEnPhrase.clear();
+				//下面两行由张家俊08年12月31日修改
+				m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->UnNull() );
+				m_SearchSpaceTemp->m_en_str = g_Vocab_NULL;
+			}
+			else
+			{
+				m_SearchSpaceTemp->viEnPhrase.clear();
+				m_SearchSpaceTemp->viEnPhrase.push_back( _pVocabEng->GetAndInsertIndex(_pVocabChi->GetWord( _pulSenChi[i] ).c_str()) );
+				m_SearchSpaceTemp->m_en_str = _pVocabChi->GetWord(_pulSenChi[i]);
+			}
+			//下面几个参数计算由张家俊08年12月25日添加
+			m_SearchSpaceTemp->m_phrase_num = 1;
+			vector<int> wids = m_SearchSpaceTemp->viEnPhrase;
+			//cerr<<"before language model computing 3:\n";
+			m_SearchSpaceTemp->m_en_ngram_prob =  _pNgram->TraversalFeaturesImpl(m_SearchSpaceTemp) ;
+			//cerr<<"after language model computing 3:\n";
+			m_SearchSpaceTemp->dPro += all_Lambda.dPhraseNum*m_SearchSpaceTemp->m_phrase_num + all_Lambda.len*m_SearchSpaceTemp->ulEnNum + all_Lambda.lm*m_SearchSpaceTemp->m_en_ngram_prob;
+			if( m_SearchSpaceTemp->viEnPhrase[m_SearchSpaceTemp->viEnPhrase.size()-1] == -1 )
+				cerr<<i<<" "<<len<<" "<<"Word Id Error!"<<endl;
+			_pstSearchSpace[i][len].Update(m_SearchSpaceTemp);
+
+
+		}
 	}
-
-
-
 
 	//
 	//如果当前句子的长度小于前面最长的句子，则NULL->English的搜索候选项不用重新计算
 	//
 	if( m_SenLen > _ulSenLenMax )
 	{
-		m_PhraseTrie = _pstPhrasePro->findword( _pVocabChi->UnNull());
-		if( m_PhraseTrie )
+		vector<int> src_phrase_idx;
+		src_phrase_idx.push_back( _pVocabChi->UnNull());
+		tgt_phrase_list_ptr = _pstPhrasePro->find_src_phrase(src_phrase_idx);
+		if (tgt_phrase_list_ptr != nullptr)
 		{
-			vector<s_PhrasePro>::iterator itbegin=m_PhraseTrie->value().begin(), itend=m_PhraseTrie->value().end();
+			vector<TgtPhrase>::iterator itbegin=tgt_phrase_list_ptr->begin(), itend=tgt_phrase_list_ptr->end();
 			for( ; itbegin!=itend; itbegin++)
 			{
 				m_SearchSpaceTemp = new s_SearchSpace();
