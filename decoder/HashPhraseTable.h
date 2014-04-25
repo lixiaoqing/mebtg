@@ -8,6 +8,15 @@ using namespace boost;
 struct TgtPhrase
 {
 	bool operator<(const TgtPhrase &right) const {return dPro < right.dPro;};
+	TgtPhrase& operator =(const TgtPhrase &right)
+	{
+		ulEnNum = right.ulEnNum;
+		viEnPhrase = right.viEnPhrase;
+		dPro = right.dPro;
+		eachTransPro = right.eachTransPro;
+		ch_pos_to_en_pos_list = right.ch_pos_to_en_pos_list;
+		return *this;
+	};
 	int ulEnNum;						//英文词的个数
 	vector<int> viEnPhrase;
 	double dPro;								//概率
