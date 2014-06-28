@@ -12,10 +12,10 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 	short int src_rule_len=0;
 	while(fin.read((char*)&src_rule_len,sizeof(short int)))
 	{
-		vector<int> src_rule;
-		src_rule.resize(src_rule_len+1);
-		fin.read((char*)&src_rule[0],sizeof(int)*src_rule_len);
-		src_rule[src_rule_len] = END_ID;
+		vector<int> src_word_id_list;
+		src_word_id_list.resize(src_rule_len+1);
+		fin.read((char*)&src_word_id_list[0],sizeof(int)*src_rule_len);
+		src_word_id_list[src_rule_len] = END_ID;
 
 		short int tgt_rule_len=0;
 		fin.read((char*)&tgt_rule_len,sizeof(short int));
@@ -65,42 +65,42 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 			tgt_rule.score += tgt_rule.prob_list[i]*m_weight.trans[i];
 		}
 
-		add_rule_to_trie(src_rule,tgt_rule);
+		add_rule_to_trie(src_word_id_list,tgt_rule);
 	}
 	fin.close();
 }
 
-vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_spans(vector<int> &src_rule,size_t pos)
+vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(vector<int> &src_word_id_list,size_t pos)
 {
-	vector<vector<TgtRule>* > matched_rules_for_spans;
-	TrieNode* current = root;
-	for (size_t i=pos;i<src_rule.size() && i-pos<RULE_LEN_MAX;i++)
+	vector<vector<TgtRule>* > matched_rules_for_prefixes;
+	RuleTrieNode* current = root;
+	for (size_t i=pos;i<src_word_id_list.size() && i-pos<RULE_LEN_MAX;i++)
 	{
-		auto it = current->id2chilren_map.find(src_rule.at(i));
+		auto it = current->id2chilren_map.find(src_word_id_list.at(i));
 		if (it != current->id2chilren_map.end())
 		{
 			current = it->second;
 			if (current->tgt_rule_list.size() == 0)
 			{
-				matched_rules_for_spans.push_back(NULL);
+				matched_rules_for_prefixes.push_back(NULL);
 			}
 			else
 			{
-				matched_rules_for_spans.push_back(&(current->tgt_rule_list));
+				matched_rules_for_prefixes.push_back(&(current->tgt_rule_list));
 			}
 		}
 		else
 		{
-			return matched_rules_for_spans;
+			return matched_rules_for_prefixes;
 		}
 	}
-	return matched_rules_for_spans;
+	return matched_rules_for_prefixes;
 }
 
-void RuleTable::add_rule_to_trie(const vector<int> &src_rule, const TgtRule &tgt_rule)
+void RuleTable::add_rule_to_trie(const vector<int> &src_word_id_list, const TgtRule &tgt_rule)
 {
-	TrieNode* current = root;
-	for (const auto &word_id : src_rule)
+	RuleTrieNode* current = root;
+	for (const auto &word_id : src_word_id_list)
 	{        
 		auto it = current->id2chilren_map.find(word_id);
 		if ( it != current->id2chilren_map.end() )
@@ -109,12 +109,12 @@ void RuleTable::add_rule_to_trie(const vector<int> &src_rule, const TgtRule &tgt
 		}
 		else
 		{
-			TrieNode* tmp = new TrieNode();
+			RuleTrieNode* tmp = new RuleTrieNode();
 			current->id2chilren_map.insert(make_pair(word_id,tmp));
 			current = tmp;
 		}
 	}
-	if (current->tgt_rule_list.size() < m_size_limit)
+	if (current->tgt_rule_list.size() < SIZE_LIMIT)
 	{
 		current->tgt_rule_list.push_back(tgt_rule);
 	}

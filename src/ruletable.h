@@ -10,24 +10,24 @@ struct TgtRule
 	vector<vector<int> > ch_pos_to_en_pos_list;
 };
 
-struct TrieNode 
+struct RuleTrieNode 
 {
 	vector<TgtRule> tgt_rule_list;
-	map <int, TrieNode*> id2chilren_map;
+	map <int, RuleTrieNode*> id2chilren_map;
 };
 
 class RuleTable
 {
 	public:
-		RuleTable(int size_limit,Weight weight){m_size_limit=size_limit;m_weight=weight;root=new TrieNode;};
+		RuleTable(int size_limit,Weight weight){SIZE_LIMIT=size_limit;m_weight=weight;root=new RuleTrieNode;};
 		void load_rule_table(const string &rule_table_file);
-		vector<vector<TgtRule>* > find_matched_rules_for_spans(vector<int> &src_rule,size_t pos);
+		vector<vector<TgtRule>* > find_matched_rules_for_prefixes(vector<int> &src_word_id_list,size_t pos);
 
 	private:
-		void add_rule_to_trie(const vector<int> &src_rule, const TgtRule &tgt_rule);
+		void add_rule_to_trie(const vector<int> &src_word_id_list, const TgtRule &tgt_rule);
 
 	private:
-		int m_size_limit;
-		TrieNode *root;
+		int SIZE_LIMIT;
+		RuleTrieNode *root;
 		Weight m_weight;
 };
