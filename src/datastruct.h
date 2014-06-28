@@ -33,6 +33,24 @@ struct Cand
 	//BoundaryAnnotatedState cur_state;
 	Cand* left_ant;
 	Cand* right_ant;
+
+	Cand ()
+	{
+		first_src_word_pos = -1;
+		last_src_word_pos = -1;
+		tgt_word_num = 0;
+		phrase_num = 0;
+		score = 0.0;
+		lm_prob = 0.0;
+		straight_reorder_prob = 0.0;
+		swap_reorder_prob = 0.0;
+		context_based_trans_prob = 0.0;
+		split_pos = -1;
+		left_ith_best = 0;
+		right_jth_best = 0;
+		left_ant = NULL;
+		right_ant = NULL;
+	}
 };
 
 struct Config

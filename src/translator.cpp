@@ -64,6 +64,42 @@ SentenceTranslator::SentenceTranslator(Vocab *i_src_vocab, Vocab *i_tgt_vocab, R
 	fill_matrix_with_matched_rules();
 }
 
+double SentenceTranslator::cal_increased_lm_score_for_sen_frag(const Cand &cand)
+{
+	vector<int> &wids = cand.tgt_word_id_list;
+	if (cand.split_pos == -1)
+	{
+		return lm_model->eval(wids);
+	}
+	else
+	{
+		//NOTE:split_pos shoud equal the size of the left ant
+		size_t rbound_in_left = cand.split_pos - (LM_ORDER_IN_MT-1)<cand.split_pos?(LM_ORDER_IN_MT-1):cand.split_pos;  //NOTE:minus one needed?
+		size_t lbound_in_right = (LM_ORDER_IN_MT-1)<(wids.size()-cand.split_pos)?(LM_ORDER_IN_MT-1):(wids.size()-cand.split_pos);
+		auto begit = wids.begin();
+		vector<int> rbound_words_in_left(begit+rbound_in_left,begit+cand.split_pos);
+		vector<int> lbound_words_in_right(begit+cand.split_pos,begit+lbound_in_right);
+		vector<int> combined_bound_words(begit+rbound_in_left,begit+lbound_in_right);
+		return lm_model->eval_word_id_list(combined_bound_words) - lm_model->eval_word_id_list(rbound_words_in_left) - lm_model->eval_word_id_list(lbound_words_in_right);
+	}
+}
+
+double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand &cand)
+{
+	vector<int> &wids = cand.tgt_word_id_list;
+	size_t len = wids.size();
+	size_t bound = (LM_ORDER_IN_MT-1)<len?(LM_ORDER_IN_MT-1):len;
+	vector<int> words_in_left_bound(wids.begin(),wids.begin()+bound);
+	vector<int> words_in_right_bound(wids.end()-bound,wids.end());
+
+	vector<int> sen_begin_vec, sen_end_vec;
+	sen_begin_vec.push_back(tgt_vocab->get_id("<s>"));
+	sen_begin_vec.insert(sen_begin_vec.end(), left_boundary_wids.begin(), left_boundary_wids.end());
+	sen_end_vec = right_boundary_wids;
+	sen_end_vec.push_back(tgt_vocab->get_id("</s>"));
+	return lm_model->eval_word_id_list(sen_begin_vec) - lm_model->eval_word_id_list(words_in_left_bound) + lm_model->eval_word_id_list(sen_end_vec) - lm_model->eval_word_id_list(words_in_right_bound);
+}
+
 void SentenceTranslator::fill_matrix_with_matched_rules()
 {
 	for (size_t start_pos=0;start_pos<src_sen_len;start_pos++)
@@ -79,7 +115,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					cand.first_src_word_pos = start_pos;
 					cand.last_src_word_pos = start_pos+span;
 					cand.tgt_word_num = 1;
-					cand.tgt_word_id_list = {tgt_vocab->get_id("NULL")};
+					cand.tgt_word_id_list = {tgt_vocab->get_id("<unk>")};
 					cand.trans_prob_list.resize(PROB_NUM,LogP_PseudoZero);
 					cand.score = 0;
 					for (size_t i=0;i<PROB_NUM;i++)
@@ -87,7 +123,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 						cand.score += feature_weight.trans.at(i)*cand.trans_prob_list.at(i);
 					}
 					cand.phrase_num = 1;
-					cand.lm_prob = lm_model->cal_lm_score(cand.tgt_word_id_list);
+					cand.lm_prob = cal_increased_lm_score_for_sen_frag(cand.tgt_word_id_list);
 					cand.score += feature_weight.phrase_num*cand.phrase_num + feature_weight.len*cand.tgt_word_num + feature_weight.lm*cand.lm_prob;
 					candpq_matrix.at(start_pos).at(span).push(cand);
 				}
@@ -103,7 +139,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand.trans_prob_list = tgt_rule.prob_list;
 				cand.score = tgt_rule.score;
 				cand.phrase_num = 1;
-				cand.lm_prob = lm_model->cal_lm_score(cand.tgt_word_id_list);
+				cand.lm_prob = cal_increased_lm_score_for_sen_frag(cand.tgt_word_id_list);
 				cand.score += feature_weight.phrase_num*cand.phrase_num + feature_weight.len*cand.tgt_word_num + feature_weight.lm*cand.lm_prob;
 				candpq_matrix.at(start_pos).at(span).push(cand);
 			}
@@ -122,7 +158,7 @@ string SentenceTranslator::translate_sentence()
 	}
 }
 
-string SentenceTranslator::generate_kbest_for_span(size_t span,size_t start_pos)
+void SentenceTranslator::generate_kbest_for_span(size_t span,size_t start_pos)
 {
 	priority_queue<Cand> merged_cands;
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
