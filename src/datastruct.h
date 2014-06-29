@@ -12,7 +12,7 @@ struct Cand
 	int last_src_word_pos;
 	int tgt_word_num;
 	vector<int> tgt_word_id_list;
-	string tgt_word_str;
+	string tgt_str;
 	int phrase_num;
 	double score;
 	vector<double> trans_prob_list;
@@ -27,8 +27,8 @@ struct Cand
 
 	//用于记录该假设由孩子节点的第几个候选翻译合并而来,09.06.06添加
 	int split_pos;
-	int left_ith_best;
-	int right_jth_best;
+	int rank_in_left;
+	int rank_in_right;
 
 	//BoundaryAnnotatedState cur_state;
 	Cand* left_ant;
@@ -46,8 +46,8 @@ struct Cand
 		swap_reorder_prob = 0.0;
 		context_based_trans_prob = 0.0;
 		split_pos = -1;
-		left_ith_best = 0;
-		right_jth_best = 0;
+		rank_in_left = 0;
+		rank_in_right = 0;
 		left_ant = NULL;
 		right_ant = NULL;
 	}

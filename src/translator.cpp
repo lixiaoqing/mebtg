@@ -153,44 +153,107 @@ string SentenceTranslator::translate_sentence()
 	{
 		for(size_t start_pos=0;start_pos<src_sen_len-span;start_pos++)
 		{
-			generate_kbest_for_span(span,start_pos);
+			generate_kbest_for_span(start_pos,span);
 		}
 	}
 }
 
-void SentenceTranslator::generate_kbest_for_span(size_t span,size_t start_pos)
+void SentenceTranslator::generate_kbest_for_span(size_t start_pos,size_t span)
 {
-	priority_queue<Cand> merged_cands;
+	priority_queue<Cand> new_cands_from_mergence;
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
 	{
-		Cand cand = merge_two_subcands(candpq_matrix.at(start_pos).at(span_lhs).top(),candpq_matrix.at(start_pos+span_lhs+1).at(span-span_lhs-1).top());
-		merged_cands.push(cand);
+		merge_subcands_and_add_to_new(candpq_matrix.at(start_pos).at(span_lhs).top(),candpq_matrix.at(start_pos+span_lhs+1).at(span-span_lhs-1).top(),1,1,new_cands_from_mergence);
 	}
 
 	set<vector<int> > duplicate_set;
 	duplicate_set.clear();
 	for(size_t i=0;i<BEAM_SIZE+EXTRA_SIZE;i++)
 	{
-		if (merged_cands.empty()==true)
+		if (new_cands_from_mergence.empty()==true)
 			break;
-		Cand best_cand = merged_cands.pop();
+		Cand best_cand = new_cands_from_mergence.pop();
 		if (span == src_sen_len)
 		{
 		}
 		candpq_matrix.at(start_pos).at(span).push(best_cand);
-		vector<int> key = {best_cand->left_ith_best,best_cand->right_jth_best,best_cand->split_pos};
-		if (duplicate_set.find(key) != duplicate_set.end())
+		vector<int> key = {best_cand->rank_in_left,best_cand->rank_in_right,best_cand->split_pos};
+		if (duplicate_set.find(key) == duplicate_set.end())
 		{
-			add_neighbours_to_merged_cands();
+			add_neighbours_to_merged_cands(cur_cand,new_cands_from_mergence);
 			duplicate_set.insert(key);
 		}
 	}
 }
 
-Cand SentenceTranslator::merge_two_subcands(const Cand &cand_lhs, const Cand &cand_rhs)
+void SentenceTranslator::merge_subcands_and_add_to_new(const Cand &cand_lhs, const Cand &cand_rhs,int rank_in_left,int rank_in_right,priority_queue<Cand> &new_cands_from_mergence)
 {
+	double straight_reorder_prob = 0;
+	double swap_reorder_prob = 0;
+	if (cand_rhs.last_src_word_pos - cand_lhs.first_src_word_pos < REORDER_WINDOW)
+	{
+		cal_reorder_score(straight_reorder_prob,swap_reorder_prob,cand_lhs,cand_rhs);
+	}
+	//NOTE: otherwise?
+	
+	Cand cand_straight;
+	cand_straight.first_src_word_pos = cand_lhs.first_src_word_pos;
+	cand_straight.last_src_word_pos = cand_rhs.last_src_word_pos;
+	cand_straight.tgt_word_num = cand_lhs.tgt_word_num + cand_rhs.tgt_word_num;
+	cand_straight.phrase_num = cand_lhs.phrase_num + cand_rhs.phrase_num;
+	cand_straight.straight_reorder_prob = cand_lhs.straight_reorder_prob + cand_rhs.straight_reorder_prob + straight_reorder_prob;
+	cand_straight.swap_reorder_prob = cand_lhs.swap_reorder_prob + cand_rhs.swap_reorder_prob + swap_reorder_prob;
+	cand_straight.split_pos = cand_lhs.last_src_word_pos + 1; //NOTE:maybe split_pos should be relative pos
+	cand_straight.rank_in_left = rank_in_left;
+	cand_straight.rank_in_right = rank_in_right;
+	cand_straight.tgt_word_id_list = cand_lhs.tgt_word_id_list;
+	cand_straight.tgt_word_id_list.insert(cand_straight.tgt_word_id_list.end(),cand_rhs.tgt_word_id_list.begin(),cand_rhs.tgt_word_id_list.end());
+	cand_straight.tgt_str = cand_lhs.tgt_str + " " + cand_rhs.tgt_str;
+	for (size_t i=0;i<PROB_NUM;i++)
+	{
+		cand_straight.trans_prob_list.push_back(cand_lhs.trans_prob_list.at(i)+cand_rhs.trans_prob_list.at(i));
+	}
+	cand_straight.left_ant = &cand_lhs;
+	cand_straight.right_ant = &cand_rhs;
+	double increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_straight);
+	cand_straight.lm_prob = cand_lhs.lm_prob + cand_rhs.lm_prob + increased_lm_prob;
+	//NOTE: add context based translation score here
+	cand_straight.score = cand_lhs.score + cand_rhs.score + feature_weight.lm*increased_lm_prob + feature_weight.reorder_straight*straight_reorder_prob;
+	new_cands_from_mergence.push(cand_straight);
+
+	if (cand_rhs.last_src_word_pos - cand_lhs.first_src_word_pos >= REORDER_WINDOW)
+		return;
+	Cand cand_swap = cand_straight;
+	cand_swap.first_src_word_pos = cand_rhs.first_src_word_pos;
+	cand_swap.last_src_word_pos = cand_lhs.last_src_word_pos;
+	cand_swap.split_pos = cand_rhs.last_src_word_pos + 1;
+	cand_swap.tgt_word_id_list = cand_rhs.tgt_word_id_list;
+	cand_swap.tgt_word_id_list.insert(cand_swap.tgt_word_id_list.end(),cand_lhs.tgt_word_id_list.begin(),cand_lhs.tgt_word_id_list.end());
+	cand_swap.tgt_str = cand_rhs.tgt_str + " " + cand_lhs.tgt_str;
+	increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_swap);
+	cand_swap.lm_prob = cand_lhs.lm_prob + cand_rhs.lm_prob + increased_lm_prob;
+	//NOTE: add context based translation score here
+	cand_swap.score = cand_lhs.score + cand_rhs.score + feature_weight.lm*increased_lm_prob + feature_weight.reorder_straight*swap_reorder_prob;
+	new_cands_from_mergence.push(cand_swap);
 }
 
-void SentenceTranslator::add_neighbours_to_merged_cands()
+void SentenceTranslator::add_neighbours_to_merged_cands(Cand &cur_cand, priority_queue<Cand> &new_cands_from_mergence)
 {
+	int start = cur_cand.first_src_word_pos;
+	int end = cur_cand.last_src_word_pos;
+	int split_pos = cur_cand.split_pos;
+
+	int rank_in_left = cur_cand.rank_in_left + 1;
+	int rank_in_right = cur_cand.rank_in_right;
+	if(candpq_matrix.at(start).at(split_pos-start).size() >= rank_in_left)
+	{
+		merge_subcands_and_add_to_new(candpq_matrix.at(start).at(split_pos-start).at(rank_in_left-1),candpq_matrix.at(split_pos).at(end-split_pos).at(rank_in_right-1),rank_in_left,rank_in_right,new_cands_from_mergence);
+	}
+
+	rank_in_left = cur_cand.rank_in_left;
+	rank_in_right = cur_cand.rank_in_right + 1;
+	if(candpq_matrix.at(split_pos).at(end-split_pos).size() >= rank_in_right)
+	{
+		merge_subcands_and_add_to_new(candpq_matrix.at(start).at(split_pos-start).at(rank_in_left-1),candpq_matrix.at(split_pos).at(end-split_pos).at(rank_in_right-1),rank_in_left,rank_in_right,new_cands_from_mergence);
+	}
 }

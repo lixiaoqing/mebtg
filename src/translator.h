@@ -22,7 +22,7 @@ class SentenceTranslator
 		string translate_sentence();
 	private:
 		void fill_matrix_with_matched_rules();
-		void generate_kbest_for_span(size_t span,size_t start_pos);
+		void generate_kbest_for_span(size_t start_pos,size_t span);
 
 	private:
 		Vocab *src_vocab;
