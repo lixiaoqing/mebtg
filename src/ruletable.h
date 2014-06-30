@@ -20,11 +20,17 @@ struct RuleTrieNode
 class RuleTable
 {
 	public:
-		RuleTable(int size_limit,Weight weight){SIZE_LIMIT=size_limit;m_weight=weight;root=new RuleTrieNode;};
-		void load_rule_table(const string &rule_table_file);
+		RuleTable(int size_limit,Weight weight,const string &rule_table_file)
+		{
+			SIZE_LIMIT=size_limit;
+			m_weight=weight;
+			root=new RuleTrieNode;
+			load_rule_table(rule_table_file);
+		};
 		vector<vector<TgtRule>* > find_matched_rules_for_prefixes(vector<int> &src_word_id_list,size_t pos);
 
 	private:
+		void load_rule_table(const string &rule_table_file);
 		void add_rule_to_trie(const vector<int> &src_word_id_list, const TgtRule &tgt_rule);
 
 	private:

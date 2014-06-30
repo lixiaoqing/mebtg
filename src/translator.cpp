@@ -24,8 +24,7 @@ void FileTranslator::translate_file(const string &input_file, const string &outp
 	string line;
 	while(getline(fin,line))
 	{
-		line.erase(0,line.find_first_not_of(" \t\r\n"));
-		line.erase(line.find_last_not_of(" \t\r\n")+1);
+		TrimLine(line);
 		if (line.size()==0)
 		{
 			fout<<endl;
@@ -109,8 +108,30 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 	}
 }
 
-pair<double> SentenceTranslator::cal_reorder_score(const Cand &cand_lhs,const Cand &cand_rhs)
-{}
+pair<double,double> SentenceTranslator::cal_reorder_score(const Cand &cand_lhs,const Cand &cand_rhs)
+{
+	int src_pos_beg_lhs = cand_lhs.beg;
+	int src_pos_end_lhs = cand_lhs.end;
+	int src_pos_beg_rhs = cand_rhs.beg;
+	int src_pos_end_rhs = cand_rhs.end;
+	int tgt_wid_beg_lhs = cand_lhs.tgt_wids.at(0);
+	int tgt_wid_end_lhs = cand_lhs.tgt_wids.at(cand_lhs.tgt_wids.size()-1);
+	int tgt_wid_beg_rhs = cand_rhs.tgt_wids.at(0);
+	int tgt_wid_end_rhs = cand_rhs.tgt_wids.at(cand_rhs.tgt_wids.size()-1);
+	vector<string> feature_vec;
+	feature_vec.resize(8);
+	feature_vec.at(0) = "c11=" + src_vocab->get_word(src_wids.at(src_pos_beg_lhs));
+	feature_vec.at(1) = "c12=" + src_vocab->get_word(src_wids.at(src_pos_end_lhs));
+	feature_vec.at(2) = "c21=" + src_vocab->get_word(src_wids.at(src_pos_beg_rhs));
+	feature_vec.at(3) = "c22=" + src_vocab->get_word(src_wids.at(src_pos_end_rhs));
+	feature_vec.at(4) = "e11=" + tgt_vocab->get_word(tgt_wid_beg_lhs);
+	feature_vec.at(5) = "e12=" + tgt_vocab->get_word(tgt_wid_end_lhs);
+	feature_vec.at(6) = "e21=" + tgt_vocab->get_word(tgt_wid_beg_rhs);
+	feature_vec.at(7) = "e22=" + tgt_vocab->get_word(tgt_wid_end_rhs);
+	vector<double> reorder_prob_vec;
+	reorder_model->eval_all(reorder_prob_vec,feature_vec);
+	return make_pair(reorder_prob_vec[reorder_model->get_tagid("straight")],reorder_prob_vec[reorder_model->get_tagid("inverted")]);
+}
 
 double SentenceTranslator::cal_increased_lm_score_for_sen_frag(const Cand &cand)
 {
@@ -200,7 +221,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand &cand_lhs, cons
 	double swap_reorder_prob = 0;
 	if (cand_rhs.end - cand_lhs.beg < para.REORDER_WINDOW)
 	{
-		pair<double> reorder_probs = cal_reorder_score(cand_lhs,cand_rhs);
+		pair<double,double> reorder_probs = cal_reorder_score(cand_lhs,cand_rhs);
 		mono_reorder_prob = reorder_probs.first;
 		swap_reorder_prob = reorder_probs.second;
 	}

@@ -77,7 +77,7 @@ class Candpq
 					if (cand.score > e_cand.score)
 					{
 						e_cand = cand;
-						make_heap(data);
+						make_heap(data.begin(),data.end());
 						return;
 					}
 				}
@@ -109,35 +109,47 @@ class Candpq
 		}
 };
 
-struct Weight
+struct Filenames
 {
-	vector<double> trans;
-	double lm;
-	double sense;
-	double len;
-	double furt;
-	double reorder_mono;
-	double reorder_swap;
-	double phrase_num;
+	string input_file;
+	string output_file;
+	string nbest_file;
+	string src_vocab_file;
+	string tgt_vocab_file;
+	string rule_table_file;
+	string lm_file;
+	string reorder_model_file;
 };
 
 struct Parameter
 {
 	size_t BEAM_SIZE;				//beam size threshold
 	size_t EXTRA_SIZE;
-	//double BEAM_PROB;                          	//probability threshold of beam search
-	size_t TABLE_SIZE;				//translation table size
 	size_t NBEST_NUM;				//nbest number
-	//size_t LM_ORDER;              			//language model order
 	size_t REORDER_WINDOW;       			//window size of reordering
-	bool PRINT_INFO;
+	size_t SIZE_LIMIT;       			//number of tgt rules for each src side
 	bool PRINT_NBEST;
-	size_t THREAD_NUM;
+	//double BEAM_PROB;                          	//probability threshold of beam search
+	//size_t TABLE_SIZE;				//translation table size
+	//size_t LM_ORDER;              		//language model order
+	//bool PRINT_INFO;
+	//size_t THREAD_NUM;
 	//int cube_flag;            			//whether decode using cube prunniing
 	//bool recombine;				//whether recombine or not
 	//bool KenLM;
 	//bool reduceVoc;				//reduce the phrase and LM table depending on the testfile
 	//bool train;					//train for parameters
+};
+
+struct Weight
+{
+	vector<double> trans;
+	double lm;
+	double reorder_mono;
+	double reorder_swap;
+	double len;					//word number in tgt translation
+	double phrase_num;				//phrase number in src side
+	//double sense;
 };
 
 #endif

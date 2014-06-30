@@ -1,6 +1,6 @@
 #include "maxent.h"
 
-void MaxentModel::load(string &modelfile)
+void MaxentModel::load(const string &modelfile)
 {
 	gzFile f = gzopen(modelfile.c_str(), "rb");
 	if (f == NULL)
@@ -30,7 +30,7 @@ void MaxentModel::load(string &modelfile)
 	gzclose(f);
 }
 
-void MaxentModel::load_bin(string &modelfile)
+void MaxentModel::load_bin(const string &modelfile)
 {
 	gzFile f;
 	f = gzopen(modelfile.c_str(), "rb");
@@ -88,8 +88,7 @@ void MaxentModel::load_bin(string &modelfile)
 	gzclose(f);
 }
 
-/*
-void MaxentModel::load_txt(string &modelfile)
+void MaxentModel::load_txt(const string &modelfile)
 {
 	ifstream fin;
 	fin.open(modelfile.c_str());
@@ -138,6 +137,7 @@ void MaxentModel::load_txt(string &modelfile)
 		lambdaVec.push_back(lambda);
 	}
 }
+/*
 */
 
 int MaxentModel::get_tagid(string tag)

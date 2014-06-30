@@ -1,2 +1,2 @@
 translator:
-	g++ *.cpp --std=c++11 -lz
+	g++ *.cpp  -o mebtg --std=c++11 -lz

@@ -1,15 +1,17 @@
 #include "stdafx.h"
+#include "myutils.h"
 
 class MaxentModel
 {
 	public:
-		void load(string &modelfile);
+		MaxentModel(const string &modelfile){load(modelfile);};
 		double eval(vector<string> &context, string &tag);		
 		void eval_all(vector<double> &me_scores, vector<string> &context);		
 		int get_tagid(string tag);
 	private:
-		void load_bin(string &modelfile);
-		void load_txt(string &modelfile);
+		void load(const string &modelfile);
+		void load_bin(const string &modelfile);
+		void load_txt(const string &modelfile);
 		size_t feature_num;
 		size_t tag_num;
 		size_t lambda_num;
