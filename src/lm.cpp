@@ -73,7 +73,7 @@ void LanguageModel::add_prob_to_trie(const vector<int> &word_id_list,double prob
 	node->probs.insert(make_pair(word_id_list.at(0),prob));
 }
 
-double LanguageModel::eval_word_id_list(const vector<int> &word_id_list)
+double LanguageModel::eval(const vector<int> &word_id_list)
 {
 	size_t len = word_id_list.size();
 	double sum = 0;
@@ -81,7 +81,7 @@ double LanguageModel::eval_word_id_list(const vector<int> &word_id_list)
 
 	for(size_t last_pos_in_ngram=START_ORDER_FOR_EVAL-1;last_pos_in_ngram<len;last_pos_in_ngram++)
 	{
-		double prob = LogP_Zero;
+		double prob = LogP_PseudoZero;
 		double bow = 0.0;
 		cur_node = root;
 
@@ -97,7 +97,7 @@ double LanguageModel::eval_word_id_list(const vector<int> &word_id_list)
 			int his_pos = last_pos_in_ngram - order;
 			if(his_pos < 0)
 				break;
-			auto child_it = cur_node->id2chilren_map(word_id_list.at(his_pos));
+			auto child_it = cur_node->id2chilren_map.find(word_id_list.at(his_pos));
 			if(child_it != cur_node->id2chilren_map.end())
 			{
 				cur_node = child_it->second;

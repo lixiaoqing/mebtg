@@ -88,6 +88,7 @@ void MaxentModel::load_bin(string &modelfile)
 	gzclose(f);
 }
 
+/*
 void MaxentModel::load_txt(string &modelfile)
 {
 	ifstream fin;
@@ -100,7 +101,7 @@ void MaxentModel::load_txt(string &modelfile)
 	string s;
 	getline(fin,s);
 	getline(fin,s);
-	feature_num = s2i(s);
+	feature_num = stoi(s);
 	for (int i = 0;i<feature_num;i++)
 	{
 		getline(fin,s);
@@ -109,7 +110,7 @@ void MaxentModel::load_txt(string &modelfile)
 		featureVec.push_back(s);
 	}
 	getline(fin,s);
-	tag_num = s2i(s);
+	tag_num = stoi(s);
 	for (int i = 0; i<tag_num; i++)
 	{
 		getline(fin,s);
@@ -123,20 +124,21 @@ void MaxentModel::load_txt(string &modelfile)
 		TrimLine(s);
 		vector <string> vs;
 		Split(vs,s);
-		featureAddrVec.at(i+1) = featureAddrVec.at(i)+s2i(vs.at(0));
+		featureAddrVec.at(i+1) = featureAddrVec.at(i)+stoi(vs.at(0));
 		for(size_t j = 1;j<vs.size();j++)
-			lambda2tagVec.push_back(s2i(vs.at(j)));
+			lambda2tagVec.push_back(stoi(vs.at(j)));
 	}
 	getline(fin,s);
-	lambda_num = s2i(s);
+	lambda_num = stoi(s);
 	for (int i = 0; i<lambda_num;i++)
 	{
 		getline(fin,s);
 		TrimLine(s);
-		double lambda = s2d(s);
+		double lambda = stod(s);
 		lambdaVec.push_back(lambda);
 	}
 }
+*/
 
 int MaxentModel::get_tagid(string tag)
 {

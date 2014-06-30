@@ -1,5 +1,6 @@
+#ifndef DATASTRUCT_H
+#define DATASTRUCT_H
 #include "stdafx.h"
-
 
 struct Cand	                
 {
@@ -8,115 +9,105 @@ struct Cand
 		return (score < cand_rhs.score);
 	}
 
-	int first_src_word_pos;
-	int last_src_word_pos;
-	int tgt_word_num;
-	vector<int> tgt_word_id_list;
-	string tgt_str;
-	int phrase_num;
-	double score;
-	vector<double> trans_prob_list;
+	//info about src language
+	int beg;			//begin position of covered src span
+	int end;			//end position of covered src span
+	int mid;			//split position of two subspan, which is the begin postion of the right span
+	int phrase_num;			//number of phrases that the src span contains, calculated recursively
+
+	//info about tgt language
+	int tgt_word_num;		//the number of tgt words in the candidate translation 
+	vector<int> tgt_wids;		//word ids of the candidate translation
+	//string tgt_str;			//candidate translation
+
+	//score info
+	double score;			//total score of the candidate
+	vector<double> trans_probs;	//translation probabilities
 	double lm_prob;
-	double straight_reorder_prob;
+	double mono_reorder_prob;
 	double swap_reorder_prob;
 	double context_based_trans_prob;
+
+	//merge info
+	int rank_lhs;			//rank of the left subcand among all the cands with the same span
+	int rank_rhs;			//rank of the right subcand among all the cands with the same span
+
+	//Cand* left_ant;
+	//Cand* right_ant;
+	//BoundaryAnnotatedState cur_state;
 	//double dCN;
 	//double dCLM;
 	//double m_syn_reorder_prob;
 	//vector<Cand>  m_recombine_array;
 
-	//用于记录该假设由孩子节点的第几个候选翻译合并而来,09.06.06添加
-	int split_pos;
-	int rank_in_left;
-	int rank_in_right;
-
-	//BoundaryAnnotatedState cur_state;
-	Cand* left_ant;
-	Cand* right_ant;
-
 	Cand ()
 	{
-		first_src_word_pos = -1;
-		last_src_word_pos = -1;
-		tgt_word_num = 0;
-		phrase_num = 0;
+		beg = 0;
+		end = 0;
+		mid = -1;
+		phrase_num = 1;
+
+		tgt_word_num = 1;
+
 		score = 0.0;
 		lm_prob = 0.0;
-		straight_reorder_prob = 0.0;
+		mono_reorder_prob = 0.0;
 		swap_reorder_prob = 0.0;
 		context_based_trans_prob = 0.0;
-		split_pos = -1;
-		rank_in_left = 0;
-		rank_in_right = 0;
-		left_ant = NULL;
-		right_ant = NULL;
+
+		rank_lhs = 0;
+		rank_rhs = 0;
 	}
 };
 
-struct Config
+class Candpq
 {
-	string lmfilename;						//language model probability file
-	string phrasefilename;					//phrase translation probability file
-	string testfilename;					//test file 
-	string resultfilename;					//result file
-	string nbestfilename;					//n_best result file
-	string sourcelmfilename;                //source language model
-	//调序模型文件由张家俊09年1月5日添加
-	string reorder_model_filename;
-	//基于上下文的翻译模型文件由李小青于14年3月29日添加,此处为记录所有模型文件名的目录文件
-	string catalog_filename;
+	public:
+		vector<Cand> data;
 
-	string candsfilename;
-	string featsfilename;
-	string initfile;
+	public:
+		void push(const Cand &cand)
+		{ 
+			for (Cand &e_cand : data)
+			{
+				if (is_bound_same(cand,e_cand))
+				{
+					if (cand.score < e_cand.score)
+						return;
+					if (cand.score > e_cand.score)
+					{
+						e_cand = cand;
+						make_heap(data);
+						return;
+					}
+				}
+			}
+			data.push_back(cand); 
+			push_heap(data.begin(), data.end()); 
+		}
 
-        string sourcevocabfilename;
-        string targetvocabfilename;
+		void pop()
+		{
+			pop_heap(data.begin(), data.end());
+			data.pop_back();
+		}
 
-
-	int beam_hist;				//beam size threshold
-	double beam_prob;                          //probability threshold of beam search
-
-	int ttable;				//translation table size
-	int nbest;				//nbest number
-	int lmorder;              //language model order
-
-	int reorder_window;       //window size of reordering
-	int cube_flag;            //whether decode using cube prunniing
-
-
-	double Lambda_lm;					//weight of language model 
-	double Lambda_sense;					//weight of context based translation model
-	double Lambda_reorderStraight;					//weight of reordering model 
-	double Lambda_reorderSwap;					//weight of reordering model 
-	vector<double> Lambda_trans;         //all the weights of phrase pairs
-	double Lambda_len;					//weight of length
-	double Lambda_dPhraseNum;
-	bool recombine;						//whether recombine or not
-
-	bool KenLM;
-
-	bool reduceVoc;						//reduce the phrase and LM table depending on the testfile
-	bool train;							//train for parameters
-
-	int feats_num;
-	bool printInfo;
-	bool printNbest;
-
-	int threadsNum;
-
-
-	SegFormate segmenttype;
-	FileFormate filetype;
-	UnknownWord transUnknownWord;
-
-	//语言对选项，09年06月23日添加
-	int chn2eng_flag;          //表示中文到英文的翻译
-	string g_Chinese_Punc_Set;  //不进行调序的中文标点约束
-	string g_Chinese_Split_Puncs; //控制子句分割的中文标点约束
-
+		Cand top() { return data.front(); }
+		Cand at(size_t i) { return data.at(i); }
+		int size() { return data.size();  }
+		bool empty() { return data.empty(); }
+	private:
+		bool is_bound_same(const Cand &a, const Cand &b)
+		{
+			size_t len = a.tgt_wids.size();
+			for (size_t i=0;i<LM_ORDER-1 && i <= len-1-i;i++)
+			{
+				if (a.tgt_wids.at(i) != b.tgt_wids.at(i) || a.tgt_wids.at(len-1-i) != b.tgt_wids.at(len-1-i))
+					return false;
+			}
+			return true;
+		}
 };
-
 
 struct Weight
 {
@@ -125,8 +116,28 @@ struct Weight
 	double sense;
 	double len;
 	double furt;
-	double reorder_straight;
+	double reorder_mono;
 	double reorder_swap;
 	double phrase_num;
 };
 
+struct Parameter
+{
+	size_t BEAM_SIZE;				//beam size threshold
+	size_t EXTRA_SIZE;
+	//double BEAM_PROB;                          	//probability threshold of beam search
+	size_t TABLE_SIZE;				//translation table size
+	size_t NBEST_NUM;				//nbest number
+	//size_t LM_ORDER;              			//language model order
+	size_t REORDER_WINDOW;       			//window size of reordering
+	bool PRINT_INFO;
+	bool PRINT_NBEST;
+	size_t THREAD_NUM;
+	//int cube_flag;            			//whether decode using cube prunniing
+	//bool recombine;				//whether recombine or not
+	//bool KenLM;
+	//bool reduceVoc;				//reduce the phrase and LM table depending on the testfile
+	//bool train;					//train for parameters
+};
+
+#endif
