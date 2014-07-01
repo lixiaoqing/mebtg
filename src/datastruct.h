@@ -4,11 +4,6 @@
 
 struct Cand	                
 {
-	bool operator< (const Cand &cand_rhs) const
-	{
-		return (score < cand_rhs.score);
-	}
-
 	//info about src language
 	int beg;			//begin position of covered src span
 	int end;			//end position of covered src span
@@ -51,61 +46,23 @@ struct Cand
 	}
 };
 
+bool cmp(const Cand *pl, const Cand *pr);
+
 class Candpq
 {
 	public:
-		void push(const Cand &cand)
-		{ 
-			for (Cand &e_cand : data)
-			{
-				if (is_bound_same(cand,e_cand))
-				{
-					if (cand.score < e_cand.score)
-					{
-						return;
-					}
-					if (cand.score > e_cand.score)
-					{
-						e_cand = cand;
-						make_heap(data.begin(),data.end());
-						return;
-					}
-				}
-			}
-			data.push_back(cand); 
-			push_heap(data.begin(), data.end()); 
-		}
+		void push(Cand *cand_ptr);
 
-		void pop()
-		{
-			pop_heap(data.begin(), data.end());
-			data.pop_back();
-		}
+		void pop();
 
-		Cand top() { return data.front(); }
-		Cand at(size_t i) { return data.at(i); }
+		Cand* top() { return data.front(); }
+		Cand* at(size_t i) { return data.at(i); }
 		int size() { return data.size();  }
 		bool empty() { return data.empty(); }
 	private:
-		bool is_bound_same(const Cand &a, const Cand &b)
-		{
-			size_t len_a = a.tgt_wids.size();
-			size_t len_b = b.tgt_wids.size();
-			size_t bound_len_a = min(len_a, LM_ORDER-1);
-			size_t bound_len_b = min(len_b, LM_ORDER-1);
-			if (bound_len_a != bound_len_b)
-				return false;
-			if (bound_len_a < LM_ORDER && a.tgt_wids != b.tgt_wids)
-				return false;
-			for (size_t i=0;i<bound_len_a;i++)
-			{
-				if (a.tgt_wids.at(i) != b.tgt_wids.at(i) || a.tgt_wids.at(len_a-1-i) != b.tgt_wids.at(len_b-1-i))
-					return false;
-			}
-			return true;
-		}
+		bool is_bound_same(const Cand *a, const Cand *b);
 	private:
-		vector<Cand> data;
+		vector<Cand*> data;
 };
 
 struct Filenames
