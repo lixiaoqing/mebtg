@@ -52,7 +52,7 @@ class SentenceTranslator
 		Parameter para;
 		Weight feature_weight;
 
-		vector<vector<Candpq*> > candpq_matrix;
+		vector<vector<Candpq> > candpq_matrix;
 		vector<Cand*> pointer_recoder;
 		vector<int> src_wids;
 		size_t src_sen_len;
