@@ -31,6 +31,7 @@ class SentenceTranslator
 {
 	public:
 		SentenceTranslator(const Models &i_models, const Parameter &i_para, const Weight &i_weight, const string &input_sen);
+		~SentenceTranslator();
 		string translate_sentence();
 	private:
 		string wids_to_str(const vector<int> &wids);
@@ -51,7 +52,7 @@ class SentenceTranslator
 		Parameter para;
 		Weight feature_weight;
 
-		vector<vector<Candpq > > candpq_matrix;  //NOTE: maybe store pointer in the matrix is better
+		vector<vector<Candpq*> > candpq_matrix;  //NOTE: maybe store pointer in the matrix is better
 		vector<int> src_wids;
 		size_t src_sen_len;
 };

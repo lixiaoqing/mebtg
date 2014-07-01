@@ -18,7 +18,6 @@ struct Cand
 	//info about tgt language
 	int tgt_word_num;		//the number of tgt words in the candidate translation 
 	vector<int> tgt_wids;		//word ids of the candidate translation
-	//string tgt_str;			//candidate translation
 
 	//score info
 	double score;			//total score of the candidate
@@ -31,14 +30,6 @@ struct Cand
 	//merge info
 	int rank_lhs;			//rank of the left subcand among all the cands with the same span
 	int rank_rhs;			//rank of the right subcand among all the cands with the same span
-
-	//Cand* left_ant;
-	//Cand* right_ant;
-	//BoundaryAnnotatedState cur_state;
-	//double dCN;
-	//double dCLM;
-	//double m_syn_reorder_prob;
-	//vector<Cand>  m_recombine_array;
 
 	Cand ()
 	{
@@ -70,7 +61,9 @@ class Candpq
 				if (is_bound_same(cand,e_cand))
 				{
 					if (cand.score < e_cand.score)
+					{
 						return;
+					}
 					if (cand.score > e_cand.score)
 					{
 						e_cand = cand;
@@ -135,16 +128,6 @@ struct Parameter
 	size_t REORDER_WINDOW;       			//window size of reordering
 	size_t RULE_NUM_LIMIT;			       	//number of tgt rules for each src side
 	bool PRINT_NBEST;
-	//double BEAM_PROB;                          	//probability threshold of beam search
-	//size_t TABLE_SIZE;				//translation table size
-	//size_t LM_ORDER;              		//language model order
-	//bool PRINT_INFO;
-	//size_t THREAD_NUM;
-	//int cube_flag;            			//whether decode using cube prunniing
-	//bool recombine;				//whether recombine or not
-	//bool KenLM;
-	//bool reduceVoc;				//reduce the phrase and LM table depending on the testfile
-	//bool train;					//train for parameters
 };
 
 struct Weight

@@ -1,4 +1,4 @@
-CXXFLAGS =-std=c++11 -O2
+CXXFLAGS =-std=c++11 -O2 -static
 translator: main.o translator.o lm.o ruletable.o maxent.o vocab.o myutils.o
 	g++ -o mebtg main.o translator.o lm.o ruletable.o maxent.o vocab.o myutils.o -std=c++11 -lz -O2
 
