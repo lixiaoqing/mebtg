@@ -8,14 +8,12 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 		cerr<<"cannot open rule table file!\n";
 		return;
 	}
-	cout<<"loading rule table file: "<<rule_table_file<<endl;
 	short int src_rule_len=0;
 	while(fin.read((char*)&src_rule_len,sizeof(short int)))
 	{
 		vector<int> src_word_id_list;
-		src_word_id_list.resize(src_rule_len+1);
+		src_word_id_list.resize(src_rule_len);
 		fin.read((char*)&src_word_id_list[0],sizeof(int)*src_rule_len);
-		src_word_id_list[src_rule_len] = END_ID;
 
 		short int tgt_rule_len=0;
 		fin.read((char*)&tgt_rule_len,sizeof(short int));
@@ -23,9 +21,8 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 			continue;
 		TgtRule tgt_rule;
 		tgt_rule.word_num = tgt_rule_len;
-		tgt_rule.word_id_list.resize(tgt_rule_len+1);
+		tgt_rule.word_id_list.resize(tgt_rule_len);
 		fin.read((char*)&(tgt_rule.word_id_list[0]),sizeof(int)*tgt_rule_len);
-		tgt_rule.word_id_list[tgt_rule_len] = END_ID;
 
 		tgt_rule.prob_list.resize(PROB_NUM);
 		fin.read((char*)&(tgt_rule.prob_list[0]),sizeof(double)*PROB_NUM);
@@ -56,21 +53,22 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 
 
 		tgt_rule.score = 0;
-		if( tgt_rule.prob_list.size() != m_weight.trans.size() )
+		if( tgt_rule.prob_list.size() != weight.trans.size() )
 		{
 			cout<<"number of probability in rule is wrong!"<<endl;
 		}
-		for( size_t i=0; i<m_weight.trans.size(); i++ )
+		for( size_t i=0; i<weight.trans.size(); i++ )
 		{
-			tgt_rule.score += tgt_rule.prob_list[i]*m_weight.trans[i];
+			tgt_rule.score += tgt_rule.prob_list[i]*weight.trans[i];
 		}
 
 		add_rule_to_trie(src_word_id_list,tgt_rule);
 	}
 	fin.close();
+	cout<<"load rule table file "<<rule_table_file<<" over\n";
 }
 
-vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(vector<int> &src_word_id_list,size_t pos)
+vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(const vector<int> &src_word_id_list,const size_t pos)
 {
 	vector<vector<TgtRule>* > matched_rules_for_prefixes;
 	RuleTrieNode* current = root;
@@ -91,6 +89,7 @@ vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(vector<int>
 		}
 		else
 		{
+			matched_rules_for_prefixes.push_back(NULL);
 			return matched_rules_for_prefixes;
 		}
 	}
@@ -114,7 +113,7 @@ void RuleTable::add_rule_to_trie(const vector<int> &src_word_id_list, const TgtR
 			current = tmp;
 		}
 	}
-	if (current->tgt_rule_list.size() < SIZE_LIMIT)
+	if (current->tgt_rule_list.size() < RULE_NUM_LIMIT)
 	{
 		current->tgt_rule_list.push_back(tgt_rule);
 	}

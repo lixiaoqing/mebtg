@@ -63,9 +63,6 @@ struct Cand
 class Candpq
 {
 	public:
-		vector<Cand> data;
-
-	public:
 		void push(const Cand &cand)
 		{ 
 			for (Cand &e_cand : data)
@@ -99,14 +96,23 @@ class Candpq
 	private:
 		bool is_bound_same(const Cand &a, const Cand &b)
 		{
-			size_t len = a.tgt_wids.size();
-			for (size_t i=0;i<LM_ORDER-1 && i <= len-1-i;i++)
+			size_t len_a = a.tgt_wids.size();
+			size_t len_b = b.tgt_wids.size();
+			size_t bound_len_a = min(len_a, LM_ORDER-1);
+			size_t bound_len_b = min(len_b, LM_ORDER-1);
+			if (bound_len_a != bound_len_b)
+				return false;
+			if (bound_len_a < LM_ORDER && a.tgt_wids != b.tgt_wids)
+				return false;
+			for (size_t i=0;i<bound_len_a;i++)
 			{
-				if (a.tgt_wids.at(i) != b.tgt_wids.at(i) || a.tgt_wids.at(len-1-i) != b.tgt_wids.at(len-1-i))
+				if (a.tgt_wids.at(i) != b.tgt_wids.at(i) || a.tgt_wids.at(len_a-1-i) != b.tgt_wids.at(len_b-1-i))
 					return false;
 			}
 			return true;
 		}
+	private:
+		vector<Cand> data;
 };
 
 struct Filenames
@@ -124,10 +130,10 @@ struct Filenames
 struct Parameter
 {
 	size_t BEAM_SIZE;				//beam size threshold
-	size_t EXTRA_SIZE;
+	size_t EXTRA_BEAM_SIZE;
 	size_t NBEST_NUM;				//nbest number
 	size_t REORDER_WINDOW;       			//window size of reordering
-	size_t SIZE_LIMIT;       			//number of tgt rules for each src side
+	size_t RULE_NUM_LIMIT;			       	//number of tgt rules for each src side
 	bool PRINT_NBEST;
 	//double BEAM_PROB;                          	//probability threshold of beam search
 	//size_t TABLE_SIZE;				//translation table size

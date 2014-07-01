@@ -8,7 +8,6 @@ void LanguageModel::load_lm(const string &lm_file)
 		cerr<<"cannot open language model file!\n";
 		return;
 	}
-	cout<<"loading language model file: "<<lm_file<<endl;
 
 	int max_order;
 	fin.read((char*)&max_order,sizeof(int));
@@ -38,6 +37,7 @@ void LanguageModel::load_lm(const string &lm_file)
 			add_prob_to_trie(wids,prob);
 		}
 	}
+	cout<<"load lm model file "<<lm_file<<" over\n";
 }
 
 NgramTrieNode* LanguageModel::search_or_create_path_in_trie(const vector<int> &wids)
@@ -79,14 +79,14 @@ double LanguageModel::eval(const vector<int> &wids)
 	double sum = 0;
 	NgramTrieNode* cur_node;
 
-	for(size_t last_pos_in_ngram=START_ORDER_FOR_EVAL-1;last_pos_in_ngram<len;last_pos_in_ngram++)
+	for(size_t last_pos_in_ngram=0;last_pos_in_ngram<len;last_pos_in_ngram++)
 	{
 		double prob = LogP_PseudoZero;
 		double bow = 0.0;
 		cur_node = root;
 
 		//calculate lm score for one ngram
-		for (size_t order=1;order<=LM_ORDER;order++)
+		for (size_t order=1;order<LM_ORDER;order++)
 		{
 			auto prob_it=cur_node->probs.find(wids.at(last_pos_in_ngram));
 			if(prob_it != cur_node->probs.end())
@@ -105,7 +105,6 @@ double LanguageModel::eval(const vector<int> &wids)
 			}
 			else
 				break;
-
 		}
 		sum += prob+bow;
 	}

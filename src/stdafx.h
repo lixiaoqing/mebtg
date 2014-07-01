@@ -27,8 +27,8 @@
 using namespace std;
 
 const size_t LM_ORDER = 5;
-const size_t START_ORDER_FOR_EVAL = 1;
-const size_t END_ID=0;
+//const size_t START_ORDER_FOR_EVAL = 1;
+//const size_t END_ID=0;
 const size_t RULE_LEN_MAX=7;
 const size_t PROB_NUM=4;
 const size_t WORD_LEN_MAX=100;

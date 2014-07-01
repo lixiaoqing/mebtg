@@ -56,9 +56,9 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 
 	src_sen_len = src_wids.size();
 	candpq_matrix.resize(src_sen_len);
-	for (size_t span=0;span<src_sen_len;span++)  //this span is pseudo, there is ONE word in span with size 0, etc.
+	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		candpq_matrix.at(span).resize(src_sen_len-span);
+		candpq_matrix.at(beg).resize(src_sen_len-beg);
 	}
 
 	fill_matrix_with_matched_rules();
@@ -170,6 +170,17 @@ double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand &cand
 	return lm_model->eval(sen_beg_words_ext) - lm_model->eval(sen_beg_words) + lm_model->eval(sen_end_words_ext) - lm_model->eval(sen_end_words);
 }
 
+string SentenceTranslator::wids_to_str(const vector<int> &wids)
+{
+	string output = "";
+	for (const auto &wid : wids)
+	{
+		output += tgt_vocab->get_word(wid) + " ";
+	}
+	TrimLine(output);
+	return output;
+}
+
 string SentenceTranslator::translate_sentence()
 {
 	for (size_t span=1;span<src_sen_len;span++)
@@ -179,9 +190,11 @@ string SentenceTranslator::translate_sentence()
 			generate_kbest_for_span(beg,span);
 		}
 	}
+	string output = wids_to_str(candpq_matrix.at(0).at(src_sen_len-1).top().tgt_wids);
+	return output;
 }
 
-void SentenceTranslator::generate_kbest_for_span(size_t beg,size_t span)
+void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t span)
 {
 	Candpq candpq_merge;
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
@@ -193,7 +206,7 @@ void SentenceTranslator::generate_kbest_for_span(size_t beg,size_t span)
 
 	set<vector<int> > duplicate_set;
 	duplicate_set.clear();
-	for(size_t i=0;i<para.BEAM_SIZE+para.EXTRA_SIZE;i++)
+	for(size_t i=0;i<para.BEAM_SIZE+para.EXTRA_BEAM_SIZE;i++)
 	{
 		if (candpq_merge.empty()==true)
 			break;
