@@ -68,8 +68,6 @@ SentenceTranslator::~SentenceTranslator()
 {
 	for (size_t i=0;i<pointer_recoder.size();i++)
 		delete pointer_recoder.at(i);
-	pointer_recoder.clear();
-	cerr<<"free memory over\n";
 }
 
 void SentenceTranslator::fill_matrix_with_matched_rules()
@@ -146,17 +144,17 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 double SentenceTranslator::cal_increased_lm_score_for_sen_frag(const Cand* cand)
 {
 	const vector<int> &wids = cand->tgt_wids;
-	if (cand->mid == -1)
+	if (cand->tgt_mid == -1)
 	{
 		return lm_model->eval(wids);
 	}
 	else
 	{
-		size_t size_lhs = cand->mid - cand->beg;
-		size_t size_rhs = cand->end - cand->mid + 1;
+		size_t size_lhs = cand->tgt_mid;
+		size_t size_rhs = wids.size() - size_lhs;
 		size_t bound_size_lhs = min(size_lhs, LM_ORDER-1);
 		size_t bound_size_rhs = min(size_rhs, LM_ORDER-1);
-		auto it_split = wids.begin() + cand->mid;
+		auto it_split = wids.begin() + size_lhs;
 		vector<int> bound_words_lhs(it_split-bound_size_lhs,it_split);
 		vector<int> bound_words_rhs(it_split,it_split+bound_size_rhs);
 		vector<int> combined_bound_words(it_split-bound_size_lhs,it_split+bound_size_rhs);
@@ -183,9 +181,13 @@ double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand* cand
 string SentenceTranslator::wids_to_str(const vector<int> &wids)
 {
 	string output = "";
+	int unk_id = tgt_vocab->get_id("<unk>");
 	for (const auto &wid : wids)
 	{
-		output += tgt_vocab->get_word(wid) + " ";
+		if (wid != unk_id)
+		{
+			output += tgt_vocab->get_word(wid) + " ";
+		}
 	}
 	TrimLine(output);
 	return output;
@@ -256,11 +258,12 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	pointer_recoder.push_back(cand_mono);
 	cand_mono->beg = cand_lhs->beg;
 	cand_mono->end = cand_rhs->end;
+	cand_mono->mid = cand_rhs->beg;
 	cand_mono->tgt_word_num = cand_lhs->tgt_word_num + cand_rhs->tgt_word_num;
+	cand_mono->tgt_mid = cand_lhs->tgt_word_num;
 	cand_mono->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
 	cand_mono->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob + mono_reorder_prob;
 	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
-	cand_mono->mid = cand_rhs->beg;
 	cand_mono->rank_lhs = rank_lhs;
 	cand_mono->rank_rhs = rank_rhs;
 	cand_mono->tgt_wids = cand_lhs->tgt_wids;
@@ -280,6 +283,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	Cand* cand_swap = new Cand;
 	pointer_recoder.push_back(cand_swap);
 	*cand_swap = *cand_mono;
+	cand_swap->tgt_mid = cand_rhs->tgt_word_num;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
 	increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_swap);

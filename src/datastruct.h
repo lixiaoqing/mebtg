@@ -13,6 +13,7 @@ struct Cand
 	//info about tgt language
 	int tgt_word_num;		//the number of tgt words in the candidate translation 
 	vector<int> tgt_wids;		//word ids of the candidate translation
+	int tgt_mid;			//split position of two target phrase, used for lm score calculation
 
 	//score info
 	double score;			//total score of the candidate
@@ -34,6 +35,7 @@ struct Cand
 		phrase_num = 1;
 
 		tgt_word_num = 1;
+		tgt_mid = -1;
 
 		score = 0.0;
 		lm_prob = 0.0;
