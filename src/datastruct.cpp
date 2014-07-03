@@ -42,19 +42,6 @@ void Candpq::push(Cand *cand_ptr)
 	push_heap(data.begin(), data.end(),smaller); 
 }
 
-/************************************************************************
- 1. 函数功能: 返回当前优先级队列中的第i大的候选
- 2. 入口参数: 候选排名i, i从0开始
- 3. 出口参数: 第i大的候选的指针
- 4. 算法简介: 在data的副本上使用nth_element算法,待改进
- * **********************************************************************/
-Cand* Candpq::nth(size_t i)
-{
-	vector<Cand*> tmp(data);
-	nth_element(tmp.begin(),tmp.begin()+i,tmp.end(),larger);
-	return tmp.at(i);
-}
-
 void Candpq::pop()
 {
 	pop_heap(data.begin(), data.end(),smaller);

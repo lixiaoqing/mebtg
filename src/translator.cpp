@@ -191,11 +191,16 @@ string SentenceTranslator::translate_sentence()
 {
 	if (src_sen_len == 0)
 		return "";
+	for(size_t beg=0;beg<src_sen_len;beg++)
+	{
+		candpq_matrix.at(beg).at(0).to_sorted_vec();		//对优先级队列中的候选进行排序
+	}
 	for (size_t span=1;span<src_sen_len;span++)
 	{
 		for(size_t beg=0;beg<src_sen_len-span;beg++)
 		{
 			generate_kbest_for_span(beg,span);
+			candpq_matrix.at(beg).at(span).to_sorted_vec();
 		}
 	}
 	string output = wids_to_str(candpq_matrix.at(0).at(src_sen_len-1).top()->tgt_wids);
@@ -322,8 +327,8 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	int rank_rhs = cur_cand->rank_rhs;
 	if(candpq_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).nth(rank_lhs-1);
-		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).nth(rank_rhs-1);
+		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 
@@ -331,8 +336,8 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	rank_rhs = cur_cand->rank_rhs + 1;
 	if(candpq_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).nth(rank_lhs-1);
-		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).nth(rank_rhs-1);
+		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 }

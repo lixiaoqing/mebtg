@@ -57,13 +57,12 @@ class Candpq
 {
 	public:
 		void push(Cand *cand_ptr);
-
 		void pop();
-
 		Cand* top() { return data.front(); }
-		Cand* nth(size_t i);
+		Cand* at(size_t i) { return data.at(i);}
 		int size() { return data.size();  }
 		bool empty() { return data.empty(); }
+		void to_sorted_vec() { sort(data.begin(),data.end(),larger); }
 	private:
 		bool is_bound_same(const Cand *a, const Cand *b);
 	private:
