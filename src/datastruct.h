@@ -86,6 +86,7 @@ struct Parameter
 {
 	size_t BEAM_SIZE;				//优先级队列的大小限制
 	size_t EXTRA_BEAM_SIZE;
+	size_t THREAD_NUM;
 	size_t NBEST_NUM;
 	size_t REORDER_WINDOW;       			//最大调序范围
 	size_t RULE_NUM_LIMIT;			       	//源端相同的情况下最多能加载的规则数

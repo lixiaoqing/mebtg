@@ -1,7 +1,7 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -O2 -static
+CXXFLAGS=-std=c++11 -O2 -fopenmp
 translator: main.o translator.o lm.o ruletable.o maxent.o vocab.o datastruct.o myutils.o
-	$(CXX) -o mebtg main.o translator.o lm.o ruletable.o maxent.o vocab.o myutils.o datastruct.o -std=c++11 -lz -O2
+	$(CXX) -o mebtg main.o translator.o lm.o ruletable.o maxent.o vocab.o myutils.o datastruct.o -std=c++11 -lz -O2 -fopenmp
 
 main.o: translator.h stdafx.h datastruct.h vocab.h ruletable.h lm.h maxent.h myutils.h
 translator.o: translator.h stdafx.h datastruct.h vocab.h ruletable.h lm.h maxent.h myutils.h

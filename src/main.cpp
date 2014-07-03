@@ -63,6 +63,11 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 			getline(fin,line);
 			para.EXTRA_BEAM_SIZE = stoi(line);
 		}
+		else if (line == "[THREAD-NUM]")
+		{
+			getline(fin,line);
+			para.THREAD_NUM = stoi(line);
+		}
 		else if (line == "[NBEST-NUM]")
 		{
 			getline(fin,line);
@@ -137,19 +142,24 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 		cerr<<"cannot open output file!\n";
 		return;
 	}
+	vector<string> input_sen;
+	vector<string> output_sen;
 	string line;
 	while(getline(fin,line))
 	{
 		TrimLine(line);
-		if (line.size()==0)
-		{
-			fout<<endl;
-		}
-		else
-		{
-			SentenceTranslator sen_translator(models,para,weight,line);
-			fout<<sen_translator.translate_sentence()<<endl;
-		}
+		input_sen.push_back(line);
+	}
+	output_sen.resize(input_sen.size());
+#pragma omp parallel for num_threads(para.THREAD_NUM)
+	for (size_t i=0;i<input_sen.size();i++)
+	{
+		SentenceTranslator sen_translator(models,para,weight,input_sen.at(i));
+		output_sen.at(i) = sen_translator.translate_sentence();
+	}
+	for (const string &sen : output_sen)
+	{
+		fout<<sen<<endl;
 	}
 }
 

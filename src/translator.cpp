@@ -189,6 +189,8 @@ string SentenceTranslator::wids_to_str(const vector<int> &wids)
 
 string SentenceTranslator::translate_sentence()
 {
+	if (src_sen_len == 0)
+		return "";
 	for (size_t span=1;span<src_sen_len;span++)
 	{
 		for(size_t beg=0;beg<src_sen_len-span;beg++)
