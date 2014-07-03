@@ -49,7 +49,8 @@ struct Cand
 	}
 };
 
-bool cmp(const Cand *pl, const Cand *pr);
+bool smaller(const Cand *pl, const Cand *pr);
+bool larger(const Cand *pl, const Cand *pr);
 
 //将跨度相同的候选组织到优先级队列中
 class Candpq
@@ -60,7 +61,7 @@ class Candpq
 		void pop();
 
 		Cand* top() { return data.front(); }
-		Cand* at(size_t i) { return data.at(i); }
+		Cand* nth(size_t i);
 		int size() { return data.size();  }
 		bool empty() { return data.empty(); }
 	private:

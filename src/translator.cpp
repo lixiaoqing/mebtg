@@ -320,8 +320,8 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	int rank_rhs = cur_cand->rank_rhs;
 	if(candpq_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);		//at is WRONG
-		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).nth(rank_lhs-1);
+		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).nth(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 
@@ -329,8 +329,8 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	rank_rhs = cur_cand->rank_rhs + 1;
 	if(candpq_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).nth(rank_lhs-1);
+		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).nth(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 }

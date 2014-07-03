@@ -1,10 +1,14 @@
 #include "datastruct.h"
 
-bool cmp(const Cand *pl, const Cand *pr)
+bool smaller(const Cand *pl, const Cand *pr)
 {
 	return pl->score < pr->score;
 }
 
+bool larger(const Cand *pl, const Cand *pr)
+{
+	return pl->score > pr->score;
+}
 /************************************************************************
  1. 函数功能: 将翻译候选加入优先级队列中, 并进行假设重组
  2. 入口参数: 翻译候选的指针
@@ -29,18 +33,31 @@ void Candpq::push(Cand *cand_ptr)
 			if (cand_ptr->score > e_cand_ptr->score)
 			{
 				*e_cand_ptr = *cand_ptr;
-				make_heap(data.begin(),data.end(),cmp);
+				make_heap(data.begin(),data.end(),smaller);
 				return;
 			}
 		}
 	}
 	data.push_back(cand_ptr); 
-	push_heap(data.begin(), data.end(),cmp); 
+	push_heap(data.begin(), data.end(),smaller); 
+}
+
+/************************************************************************
+ 1. 函数功能: 返回当前优先级队列中的第i大的候选
+ 2. 入口参数: 候选排名i, i从0开始
+ 3. 出口参数: 第i大的候选的指针
+ 4. 算法简介: 在data的副本上使用nth_element算法,待改进
+ * **********************************************************************/
+Cand* Candpq::nth(size_t i)
+{
+	vector<Cand*> tmp(data);
+	nth_element(tmp.begin(),tmp.begin()+i,tmp.end(),larger);
+	return tmp.at(i);
 }
 
 void Candpq::pop()
 {
-	pop_heap(data.begin(), data.end(),cmp);
+	pop_heap(data.begin(), data.end(),smaller);
 	data.pop_back();
 }
 
