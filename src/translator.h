@@ -15,18 +15,6 @@ struct Models
 	LanguageModel *lm_model;
 };
 
-class FileTranslator
-{
-	public:
-		FileTranslator(const Models &i_models, const Parameter &i_para, const Weight &i_weight);
-		void translate_file(const string &input_file, const string &output_file);
-
-	private:
-		Models models;
-		Parameter para;
-		Weight feature_weight;
-};
-
 class SentenceTranslator
 {
 	public:
@@ -52,8 +40,9 @@ class SentenceTranslator
 		Parameter para;
 		Weight feature_weight;
 
-		vector<vector<Candpq> > candpq_matrix;
-		vector<Cand*> pointer_recoder;
+		vector<vector<Candpq> > candpq_matrix;			//存储解码过程中所有跨度对应的优先级队列, 
+									//candpq_matrix[i][j]存储起始位置为i, 跨度为j的优先级队列
+		vector<Cand*> pointer_recoder;				//记录所有申请的内存
 		vector<int> src_wids;
 		size_t src_sen_len;
 };

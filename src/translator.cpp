@@ -1,42 +1,5 @@
 #include "translator.h"
 
-FileTranslator::FileTranslator(const Models &i_models, const Parameter &i_para, const Weight &i_weight)
-{
-	models = i_models;
-	para = i_para;
-	feature_weight = i_weight;
-}
-
-void FileTranslator::translate_file(const string &input_file, const string &output_file)
-{
-	ifstream fin(input_file.c_str());
-	if (!fin.is_open())
-	{
-		cerr<<"cannot open input file!\n";
-		return;
-	}
-	ofstream fout(output_file.c_str());
-	if (!fout.is_open())
-	{
-		cerr<<"cannot open output file!\n";
-		return;
-	}
-	string line;
-	while(getline(fin,line))
-	{
-		TrimLine(line);
-		if (line.size()==0)
-		{
-			fout<<endl;
-		}
-		else
-		{
-			SentenceTranslator sen_translator(models,para,feature_weight,line);
-			fout<<sen_translator.translate_sentence()<<endl;
-		}
-	}
-}
-
 SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &i_para, const Weight &i_weight, const string &input_sen)
 {
 	src_vocab = i_models.src_vocab;
@@ -70,12 +33,21 @@ SentenceTranslator::~SentenceTranslator()
 		delete pointer_recoder.at(i);
 }
 
+/**************************************************************************************
+ 1. 函数功能: 根据短语表中匹配到的所有规则生成翻译候选, 并加入到candpq_matrix中
+ 2. 入口参数: 无
+ 3. 出口参数: 无
+ 4. 算法简介: a) 如果某个跨度没匹配到规则
+              a.1) 如果该跨度包含1个单词, 则生成对应的OOV候选
+              a.2) 如果该跨度包含多个单词, 则不作处理
+              b) 如果某个跨度匹配到了规则, 则根据规则生成候选
+************************************************************************************* */
 void SentenceTranslator::fill_matrix_with_matched_rules()
 {
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
 		vector<vector<TgtRule>* > matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_wids,beg);
-		for (size_t span=0;span<matched_rules_for_prefixes.size();span++)
+		for (size_t span=0;span<matched_rules_for_prefixes.size();span++)	//span=0对应跨度包含1个词的情况
 		{
 			if (matched_rules_for_prefixes.at(span) == NULL)
 			{
@@ -86,14 +58,14 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					cand->beg = beg;
 					cand->end = beg+span;
 					cand->tgt_wids.push_back(tgt_vocab->get_id("<unk>"));
-					cand->score = 0;
 					cand->trans_probs.resize(PROB_NUM,LogP_PseudoZero);
 					for (size_t i=0;i<PROB_NUM;i++)
 					{
 						cand->score += feature_weight.trans.at(i)*cand->trans_probs.at(i);
 					}
 					cand->lm_prob = cal_increased_lm_score_for_sen_frag(cand);
-					cand->score += feature_weight.phrase_num*cand->phrase_num + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
+					cand->score += feature_weight.phrase_num*cand->phrase_num 
+						       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
 					candpq_matrix.at(beg).at(span).push(cand);
 				}
 				continue;
@@ -109,13 +81,21 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand->trans_probs = tgt_rule.prob_list;
 				cand->score = tgt_rule.score;
 				cand->lm_prob = cal_increased_lm_score_for_sen_frag(cand);
-				cand->score += feature_weight.phrase_num*cand->phrase_num + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
+				cand->score += feature_weight.phrase_num*cand->phrase_num 
+					       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
 				candpq_matrix.at(beg).at(span).push(cand);
 			}
 		}
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 计算调序模型打分
+ 2. 入口参数: 生成当前候选的左候选以及右候选,左右是指在当前候选中的位置
+ 3. 出口参数: 顺序以及逆序调序概率
+ 4. 算法简介: 使用如下8个特征估计概率
+              {左候选, 右候选} X {源端, 目标端} X {首词, 尾词}
+************************************************************************************* */
 pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,const Cand* cand_rhs)
 {
 	int src_pos_beg_lhs = cand_lhs->beg;
@@ -141,6 +121,13 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 	return make_pair(reorder_prob_vec[reorder_model->get_tagid("straight")],reorder_prob_vec[reorder_model->get_tagid("inverted")]);
 }
 
+/**************************************************************************************
+ 1. 函数功能: 计算生成当前候选的语言模型打分增量
+ 2. 入口参数: 当前候选
+ 3. 出口参数: 语言模型打分增量
+ 4. 算法简介: a) 如果当前候选是根据短语表中的规则生成的,则直接计算候选译文的语言模型打分
+              b) 如果当前候选由两个子候选合并得来,则计算合并边界所增加的语言模型打分
+************************************************************************************* */
 double SentenceTranslator::cal_increased_lm_score_for_sen_frag(const Cand* cand)
 {
 	const vector<int> &wids = cand->tgt_wids;
@@ -152,16 +139,22 @@ double SentenceTranslator::cal_increased_lm_score_for_sen_frag(const Cand* cand)
 	{
 		size_t size_lhs = cand->tgt_mid;
 		size_t size_rhs = wids.size() - size_lhs;
-		size_t bound_size_lhs = min(size_lhs, LM_ORDER-1);
-		size_t bound_size_rhs = min(size_rhs, LM_ORDER-1);
+		size_t rbound_size_lhs = min(size_lhs, LM_ORDER-1);		//左候选的右边界大小
+		size_t lound_size_rhs = min(size_rhs, LM_ORDER-1);
 		auto it_split = wids.begin() + size_lhs;
-		vector<int> bound_words_lhs(it_split-bound_size_lhs,it_split);
-		vector<int> bound_words_rhs(it_split,it_split+bound_size_rhs);
-		vector<int> combined_bound_words(it_split-bound_size_lhs,it_split+bound_size_rhs);
+		vector<int> bound_words_lhs(it_split-rbound_size_lhs,it_split);
+		vector<int> bound_words_rhs(it_split,it_split+lound_size_rhs);
+		vector<int> combined_bound_words(it_split-rbound_size_lhs,it_split+lound_size_rhs);
 		return lm_model->eval(combined_bound_words) - lm_model->eval(bound_words_lhs) - lm_model->eval(bound_words_rhs);
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 计算生成完整句子的语言模型打分增量
+ 2. 入口参数: 当前候选
+ 3. 出口参数: 语言模型打分增量
+ 4. 算法简介: 在句首及句尾添加标记,然后计算语言模型打分增量
+************************************************************************************* */
 double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand* cand)
 {
 	const vector<int> &wids = cand->tgt_wids;
@@ -175,7 +168,8 @@ double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand* cand
 	sen_beg_words_ext.insert(sen_beg_words_ext.end(), sen_beg_words.begin(), sen_beg_words.end());
 	sen_end_words_ext = sen_end_words;
 	sen_end_words_ext.push_back(tgt_vocab->get_id("</s>"));
-	return lm_model->eval(sen_beg_words_ext) - lm_model->eval(sen_beg_words) + lm_model->eval(sen_end_words_ext) - lm_model->eval(sen_end_words);
+	return lm_model->eval(sen_beg_words_ext) - lm_model->eval(sen_beg_words) 
+	       + lm_model->eval(sen_end_words_ext) - lm_model->eval(sen_end_words);
 }
 
 string SentenceTranslator::wids_to_str(const vector<int> &wids)
@@ -206,9 +200,16 @@ string SentenceTranslator::translate_sentence()
 	return output;
 }
 
+/**************************************************************************************
+ 1. 函数功能: 为每个跨度生成kbest候选
+ 2. 入口参数: 跨度的起始位置以及跨度的长度(实际为长度减1)
+ 3. 出口参数: 无
+ 4. 算法简介: 见注释
+************************************************************************************* */
 void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t span)
 {
-	Candpq candpq_merge;
+	Candpq candpq_merge;			//用来临时存储通过合并得到的候选
+	//对于当前跨度的每种分割方式,取出左跨度和右跨度中的最好候选,将合并得到的候选加入candpq_merge
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
 	{
 		const Cand *best_cand_lhs = candpq_matrix.at(beg).at(span_lhs).top();
@@ -216,8 +217,9 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 		merge_subcands_and_add_to_pq(best_cand_lhs,best_cand_rhs,1,1,candpq_merge);
 	}
 
-	set<vector<int> > duplicate_set;
+	set<vector<int> > duplicate_set;	//用来记录candpq_merge中的候选是否已经被扩展过
 	duplicate_set.clear();
+	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candpq_matrix中,并将该候选的邻居加入candpq_merge中
 	for(size_t i=0;i<para.BEAM_SIZE+para.EXTRA_BEAM_SIZE;i++)
 	{
 		if (candpq_merge.empty()==true)
@@ -231,8 +233,8 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			best_cand->score += feature_weight.lm*increased_lm_prob;
 		}
 		candpq_matrix.at(beg).at(span).push(best_cand);
-		int arr[] = {best_cand->rank_lhs,best_cand->rank_rhs,best_cand->mid};
-		vector<int> key(arr,arr+3);
+		
+		vector<int> key = {best_cand->rank_lhs,best_cand->rank_rhs,best_cand->mid};
 		if (duplicate_set.find(key) == duplicate_set.end())
 		{
 			add_neighbours_to_pq(best_cand,candpq_merge);
@@ -241,6 +243,12 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 合并两个子候选并将生成的候选加入candpq_merge中
+ 2. 入口参数: 两个子候选,两个子候选的排名
+ 3. 出口参数: 更新后的candpq_merge
+ 4. 算法简介: 顺序以及逆序合并两个子候选
+************************************************************************************* */
 void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, const Cand* cand_rhs,int rank_lhs,int rank_rhs,Candpq &candpq_merge)
 {
 	if (candpq_merge.size()>2*para.BEAM_SIZE*para.BEAM_SIZE)
@@ -274,8 +282,8 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	}
 	double increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_mono);
 	cand_mono->lm_prob = cand_lhs->lm_prob + cand_rhs->lm_prob + increased_lm_prob;
-	//NOTE: add context based translation score here
-	cand_mono->score = cand_lhs->score + cand_rhs->score + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*mono_reorder_prob;
+	cand_mono->score = cand_lhs->score + cand_rhs->score 
+		           + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*mono_reorder_prob;
 	candpq_merge.push(cand_mono);
 
 	if (cand_rhs->end - cand_lhs->beg >= para.REORDER_WINDOW)
@@ -288,11 +296,18 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
 	increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_swap);
 	cand_swap->lm_prob = cand_lhs->lm_prob + cand_rhs->lm_prob + increased_lm_prob;
-	//NOTE: add context based translation score here
-	cand_swap->score = cand_lhs->score + cand_rhs->score + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*swap_reorder_prob;
+	cand_swap->score = cand_lhs->score + cand_rhs->score 
+		           + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*swap_reorder_prob;
 	candpq_merge.push(cand_swap);
 }
 
+/**************************************************************************************
+ 1. 函数功能: 将当前候选的邻居加入candpq_merge中
+ 2. 入口参数: 当前候选
+ 3. 出口参数: 更新后的candpq_merge
+ 4. 算法简介: a) 取比当前候选左子候选差一名的候选与当前候选的右子候选合并
+              b) 取比当前候选右子候选差一名的候选与当前候选的左子候选合并
+************************************************************************************* */
 void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_merge)
 {
 	int beg = cur_cand->beg;
@@ -305,7 +320,7 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	int rank_rhs = cur_cand->rank_rhs;
 	if(candpq_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);		//at is WRONG
 		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}

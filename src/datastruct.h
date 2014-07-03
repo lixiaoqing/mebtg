@@ -2,47 +2,48 @@
 #define DATASTRUCT_H
 #include "stdafx.h"
 
+//存储翻译候选
 struct Cand	                
 {
-	//info about src language
-	int beg;			//begin position of covered src span
-	int end;			//end position of covered src span
-	int mid;			//split position of two subspan, which is the begin postion of the right span
-	int phrase_num;			//number of phrases that the src span contains, calculated recursively
+	//源端信息
+	int beg;			//当前候选在源语言中的起始位置
+	int end;			//当前候选在源语言中的终止位置
+	int phrase_num;			//当前候选包含的短语数
 
-	//info about tgt language
-	int tgt_word_num;		//the number of tgt words in the candidate translation 
-	vector<int> tgt_wids;		//word ids of the candidate translation
-	int tgt_mid;			//split position of two target phrase, used for lm score calculation
+	//目标端信息
+	int tgt_word_num;		//当前候选目标端的单词数
+	vector<int> tgt_wids;		//当前候选目标端的id序列
 
-	//score info
-	double score;			//total score of the candidate
-	vector<double> trans_probs;	//translation probabilities
+	//打分信息
+	double score;			//当前候选的总得分
+	vector<double> trans_probs;	//翻译概率
 	double lm_prob;
 	double mono_reorder_prob;
 	double swap_reorder_prob;
-	double context_based_trans_prob;
 
-	//merge info
-	int rank_lhs;			//rank of the left subcand among all the cands with the same span
-	int rank_rhs;			//rank of the right subcand among all the cands with the same span
+	//合并信息,记录当前候选是由两个子候选合并得来时的相关信息
+	int mid;			//记录两个子候选在源语言中的交界位置
+	int tgt_mid;			//记录两个子候选在目标语言中的交界位置,即第一个子候选目标端的长度
+	int rank_lhs;			//记录第一个子候选在优先级队列中的排名
+	int rank_rhs;			//记录第二个子候选在优先级队列中的排名
 
 	Cand ()
 	{
 		beg = 0;
 		end = 0;
-		mid = -1;
 		phrase_num = 1;
 
 		tgt_word_num = 1;
-		tgt_mid = -1;
+		tgt_wids.clear();
 
 		score = 0.0;
+		trans_probs.clear();
 		lm_prob = 0.0;
 		mono_reorder_prob = 0.0;
 		swap_reorder_prob = 0.0;
-		context_based_trans_prob = 0.0;
 
+		mid = -1;
+		tgt_mid = -1;
 		rank_lhs = 0;
 		rank_rhs = 0;
 	}
@@ -50,6 +51,7 @@ struct Cand
 
 bool cmp(const Cand *pl, const Cand *pr);
 
+//将跨度相同的候选组织到优先级队列中
 class Candpq
 {
 	public:
@@ -81,11 +83,11 @@ struct Filenames
 
 struct Parameter
 {
-	size_t BEAM_SIZE;				//beam size threshold
+	size_t BEAM_SIZE;				//优先级队列的大小限制
 	size_t EXTRA_BEAM_SIZE;
-	size_t NBEST_NUM;				//nbest number
-	size_t REORDER_WINDOW;       			//window size of reordering
-	size_t RULE_NUM_LIMIT;			       	//number of tgt rules for each src side
+	size_t NBEST_NUM;
+	size_t REORDER_WINDOW;       			//最大调序范围
+	size_t RULE_NUM_LIMIT;			       	//源端相同的情况下最多能加载的规则数
 	bool PRINT_NBEST;
 };
 
@@ -95,9 +97,8 @@ struct Weight
 	double lm;
 	double reorder_mono;
 	double reorder_swap;
-	double len;					//word number in tgt translation
-	double phrase_num;				//phrase number in src side
-	//double sense;
+	double len;					//译文的单词数
+	double phrase_num;				//源端被切成的短语数
 };
 
 #endif

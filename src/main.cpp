@@ -123,6 +123,36 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 	}
 }
 
+void translate_file(const Models &models, const Parameter &para, const Weight &weight, const string &input_file, const string &output_file)
+{
+	ifstream fin(input_file.c_str());
+	if (!fin.is_open())
+	{
+		cerr<<"cannot open input file!\n";
+		return;
+	}
+	ofstream fout(output_file.c_str());
+	if (!fout.is_open())
+	{
+		cerr<<"cannot open output file!\n";
+		return;
+	}
+	string line;
+	while(getline(fin,line))
+	{
+		TrimLine(line);
+		if (line.size()==0)
+		{
+			fout<<endl;
+		}
+		else
+		{
+			SentenceTranslator sen_translator(models,para,weight,line);
+			fout<<sen_translator.translate_sentence()<<endl;
+		}
+	}
+}
+
 int main()
 {
 	clock_t a,b;
@@ -143,8 +173,7 @@ int main()
 	cout<<"loading time: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
 
 	Models models = {src_vocab,tgt_vocab,ruletable,reorder_model,lm_model};
-	FileTranslator translator(models,para,weight);
-	translator.translate_file(fns.input_file,fns.output_file);
+	translate_file(models,para,weight,fns.input_file,fns.output_file);
 	b = clock();
 	cout<<"time cost: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
 	return 0;
