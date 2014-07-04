@@ -168,6 +168,7 @@ double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand* cand
 	sen_beg_words_ext.insert(sen_beg_words_ext.end(), sen_beg_words.begin(), sen_beg_words.end());
 	sen_end_words_ext = sen_end_words;
 	sen_end_words_ext.push_back(tgt_vocab->get_id("</s>"));
+	sen_end_words.erase(sen_end_words.begin());
 	return lm_model->eval(sen_beg_words_ext) - lm_model->eval(sen_beg_words) 
 	       + lm_model->eval(sen_end_words_ext) - lm_model->eval(sen_end_words);
 }
