@@ -73,106 +73,50 @@ void LanguageModel::add_prob_to_trie(const vector<int> &wids,double prob)
 	node->probs.insert(make_pair(wids.at(0),prob));
 }
 
-/*
-double LanguageModel::eval(const vector<int> &wids)
-{
-	size_t len = wids.size();
-	double sum = 0;
-	NgramTrieNode* cur_node;
-
-	for(size_t last_pos_in_ngram=0;last_pos_in_ngram<len;last_pos_in_ngram++)
-	{
-		double prob = LogP_PseudoZero;
-		double bow = 0.0;
-		cur_node = root;
-
-		//calculate lm score for one ngram
-		for (size_t order=1;order<LM_ORDER;order++)
-		{
-			auto prob_it=cur_node->probs.find(wids.at(last_pos_in_ngram));
-			if(prob_it != cur_node->probs.end())
-			{
-				prob = prob_it->second;
-				bow = 0.0;
-			}
-			int his_pos = last_pos_in_ngram - order;
-			if(his_pos < 0)
-				break;
-			auto child_it = cur_node->id2chilren_map.find(wids.at(his_pos));
-			if(child_it != cur_node->id2chilren_map.end())
-			{
-				cur_node = child_it->second;
-				bow += cur_node->bow;
-			}
-			else
-				break;
-		}
-		sum += prob+bow;
-	}
-	return sum;
-}
-*/
-
 double LanguageModel::eval(const vector<int> &wids)
 {
 	int len = wids.size();
-	double m_SumPro = 0;
-	NgramTrieNode* m_Trie;
-	NgramTrieNode* m_next;
+	double sen_lm_score = 0;
+	NgramTrieNode* cur_node;
 
 	for( int i=0; i<len; i++ )
 	{
-		int m_pos = i;
-		int m_word = wids[i];
-		double m_WordPro = -99;
-		double m_dPro = -99;
-		double m_dBow = 0;
+		int pos = i;
+		double prob = LogP_PseudoZero;
+		double bow = 0;
 
-		m_Trie = root;
-		do
+		cur_node = root;
+		while(1)
 		{
 			//查找语言模型的概率
-			auto it=m_Trie->probs.find(m_word);
-			if( m_Trie->probs.end() != it )
+			auto it=cur_node->probs.find(wids.at(i));
+			if( cur_node->probs.end() != it )
 			{
-				m_dPro = (*it).second;
-				m_dBow = 0;
+				prob = it->second;
+				bow = 0;
 			}
-			// 			else if( m_pos == i )  //unknown word
-			// 			{
-			// 				;
-			// 			}
-
 			//如果已经达到语言模型的次数，或者到达了句子的开始位置，则退出
-			if( i-m_pos >= LM_ORDER-1 || m_pos < 1 )
+			if( i-pos >= LM_ORDER-1 || pos < 1 )
 			{
 				break;
 			}
 
 			//查找Backoff 值
-
-			auto it_child = m_Trie->id2chilren_map.find( wids[m_pos-1] );
-			if( it_child != m_Trie->id2chilren_map.end())
+			auto it_child = cur_node->id2chilren_map.find( wids.at(pos-1) );
+			if( it_child != cur_node->id2chilren_map.end())
 			{
-				m_next = it_child->second;
-				m_dBow += m_next->bow;
-				double m_d = m_next->bow;
-				m_Trie = m_next;
-				m_pos--;
+				cur_node = it_child->second;;
+				bow += cur_node->bow;
+				pos--;
 			}
 			else
 			{
 				break;
 			}
-
-		}while(1);
-
-		m_WordPro = m_dPro+m_dBow;
-		if(  m_WordPro != 0 )
-		{
-			m_SumPro += m_WordPro;
 		}
+
+		sen_lm_score += prob+bow;
 	}
 
-	return m_SumPro;
+	return sen_lm_score;
 }
