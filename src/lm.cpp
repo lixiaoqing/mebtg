@@ -30,7 +30,7 @@ void LanguageModel::load_lm(const string &lm_file)
 			{
 				fin.read((char*)&bow,sizeof(double));
 			}
-			if(order<max_order && bow != 0.0)
+			//if(order<max_order && bow != 0.0)
 			{
 				add_bow_to_trie(wids,bow);
 			}
@@ -73,6 +73,7 @@ void LanguageModel::add_prob_to_trie(const vector<int> &wids,double prob)
 	node->probs.insert(make_pair(wids.at(0),prob));
 }
 
+/*
 double LanguageModel::eval(const vector<int> &wids)
 {
 	size_t len = wids.size();
@@ -109,4 +110,69 @@ double LanguageModel::eval(const vector<int> &wids)
 		sum += prob+bow;
 	}
 	return sum;
+}
+*/
+
+double LanguageModel::eval(const vector<int> &wids)
+{
+	int len = wids.size();
+	double m_SumPro = 0;
+	NgramTrieNode* m_Trie;
+	NgramTrieNode* m_next;
+
+	for( int i=0; i<len; i++ )
+	{
+		int m_pos = i;
+		int m_word = wids[i];
+		double m_WordPro = -99;
+		double m_dPro = -99;
+		double m_dBow = 0;
+
+		m_Trie = root;
+		do
+		{
+			//查找语言模型的概率
+			auto it=m_Trie->probs.find(m_word);
+			if( m_Trie->probs.end() != it )
+			{
+				m_dPro = (*it).second;
+				m_dBow = 0;
+			}
+			// 			else if( m_pos == i )  //unknown word
+			// 			{
+			// 				;
+			// 			}
+
+			//如果已经达到语言模型的次数，或者到达了句子的开始位置，则退出
+			if( i-m_pos >= LM_ORDER-1 || m_pos < 1 )
+			{
+				break;
+			}
+
+			//查找Backoff 值
+
+			auto it_child = m_Trie->id2chilren_map.find( wids[m_pos-1] );
+			if( it_child != m_Trie->id2chilren_map.end())
+			{
+				m_next = it_child->second;
+				m_dBow += m_next->bow;
+				double m_d = m_next->bow;
+				m_Trie = m_next;
+				m_pos--;
+			}
+			else
+			{
+				break;
+			}
+
+		}while(1);
+
+		m_WordPro = m_dPro+m_dBow;
+		if(  m_WordPro != 0 )
+		{
+			m_SumPro += m_WordPro;
+		}
+	}
+
+	return m_SumPro;
 }
