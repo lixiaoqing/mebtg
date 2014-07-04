@@ -49,25 +49,32 @@ struct Cand
 	}
 };
 
-bool smaller(const Cand *pl, const Cand *pr);
-bool larger(const Cand *pl, const Cand *pr);
+struct smaller
+{
+	bool operator() ( const Cand *pl, const Cand *pr )
+	{
+		return pl->score < pr->score;
+	}
+};
 
-//将跨度相同的候选组织到优先级队列中
-class Candpq
+bool larger( const Cand *pl, const Cand *pr );
+
+//将跨度相同的候选组织到列表中
+class Candli
 {
 	public:
-		void push(Cand *cand_ptr);
-		void pop();
+		void add(Cand *cand_ptr);
 		Cand* top() { return data.front(); }
 		Cand* at(size_t i) { return data.at(i);}
 		int size() { return data.size();  }
-		bool empty() { return data.empty(); }
-		void to_sorted_vec() { sort(data.begin(),data.end(),larger); }
+		void sort() { std::sort(data.begin(),data.end(),larger); }
 	private:
 		bool is_bound_same(const Cand *a, const Cand *b);
 	private:
 		vector<Cand*> data;
 };
+
+typedef priority_queue<Cand*, vector<Cand*>, smaller> Candpq;
 
 struct Filenames
 {

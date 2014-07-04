@@ -18,10 +18,10 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	}
 
 	src_sen_len = src_wids.size();
-	candpq_matrix.resize(src_sen_len);
+	candli_matrix.resize(src_sen_len);
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		candpq_matrix.at(beg).resize(src_sen_len-beg);
+		candli_matrix.at(beg).resize(src_sen_len-beg);
 	}
 
 	fill_matrix_with_matched_rules();
@@ -34,7 +34,7 @@ SentenceTranslator::~SentenceTranslator()
 }
 
 /**************************************************************************************
- 1. 函数功能: 根据短语表中匹配到的所有规则生成翻译候选, 并加入到candpq_matrix中
+ 1. 函数功能: 根据短语表中匹配到的所有规则生成翻译候选, 并加入到candli_matrix中
  2. 入口参数: 无
  3. 出口参数: 无
  4. 算法简介: a) 如果某个跨度没匹配到规则
@@ -66,7 +66,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					cand->lm_prob = cal_increased_lm_score_for_sen_frag(cand);
 					cand->score += feature_weight.phrase_num*cand->phrase_num 
 						       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
-					candpq_matrix.at(beg).at(span).push(cand);
+					candli_matrix.at(beg).at(span).add(cand);
 				}
 				continue;
 			}
@@ -83,7 +83,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand->lm_prob = cal_increased_lm_score_for_sen_frag(cand);
 				cand->score += feature_weight.phrase_num*cand->phrase_num 
 					       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
-				candpq_matrix.at(beg).at(span).push(cand);
+				candli_matrix.at(beg).at(span).add(cand);
 			}
 		}
 	}
@@ -193,17 +193,17 @@ string SentenceTranslator::translate_sentence()
 		return "";
 	for(size_t beg=0;beg<src_sen_len;beg++)
 	{
-		candpq_matrix.at(beg).at(0).to_sorted_vec();		//对优先级队列中的候选进行排序
+		candli_matrix.at(beg).at(0).sort();		//对列表中的候选进行排序
 	}
 	for (size_t span=1;span<src_sen_len;span++)
 	{
 		for(size_t beg=0;beg<src_sen_len-span;beg++)
 		{
 			generate_kbest_for_span(beg,span);
-			candpq_matrix.at(beg).at(span).to_sorted_vec();
+			candli_matrix.at(beg).at(span).sort();
 		}
 	}
-	string output = wids_to_str(candpq_matrix.at(0).at(src_sen_len-1).top()->tgt_wids);
+	string output = wids_to_str(candli_matrix.at(0).at(src_sen_len-1).top()->tgt_wids);
 	return output;
 }
 
@@ -215,18 +215,19 @@ string SentenceTranslator::translate_sentence()
 ************************************************************************************* */
 void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t span)
 {
-	Candpq candpq_merge;			//用来临时存储通过合并得到的候选
+	Candpq candpq_merge;			//优先级队列,用来临时存储通过合并得到的候选
+
 	//对于当前跨度的每种分割方式,取出左跨度和右跨度中的最好候选,将合并得到的候选加入candpq_merge
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
 	{
-		const Cand *best_cand_lhs = candpq_matrix.at(beg).at(span_lhs).top();
-		const Cand *best_cand_rhs = candpq_matrix.at(beg+span_lhs+1).at(span-span_lhs-1).top();
+		const Cand *best_cand_lhs = candli_matrix.at(beg).at(span_lhs).top();
+		const Cand *best_cand_rhs = candli_matrix.at(beg+span_lhs+1).at(span-span_lhs-1).top();
 		merge_subcands_and_add_to_pq(best_cand_lhs,best_cand_rhs,1,1,candpq_merge);
 	}
 
 	set<vector<int> > duplicate_set;	//用来记录candpq_merge中的候选是否已经被扩展过
 	duplicate_set.clear();
-	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candpq_matrix中,并将该候选的邻居加入candpq_merge中
+	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candli_matrix中,并将该候选的邻居加入candpq_merge中
 	for(size_t i=0;i<para.BEAM_SIZE+para.EXTRA_BEAM_SIZE;i++)
 	{
 		if (candpq_merge.empty()==true)
@@ -239,7 +240,7 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			best_cand->lm_prob += increased_lm_prob;
 			best_cand->score += feature_weight.lm*increased_lm_prob;
 		}
-		candpq_matrix.at(beg).at(span).push(best_cand);
+		candli_matrix.at(beg).at(span).add(best_cand);
 		
 		vector<int> key = {best_cand->rank_lhs,best_cand->rank_rhs,best_cand->mid};
 		if (duplicate_set.find(key) == duplicate_set.end())
@@ -258,8 +259,8 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 ************************************************************************************* */
 void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, const Cand* cand_rhs,int rank_lhs,int rank_rhs,Candpq &candpq_merge)
 {
-	if (candpq_merge.size()>2*para.BEAM_SIZE*para.BEAM_SIZE)
-		return;
+	//if (candpq_merge.size()>2*para.BEAM_SIZE*para.BEAM_SIZE)
+		//return;
 	double mono_reorder_prob = 0;
 	double swap_reorder_prob = 0;
 	if (cand_rhs->end - cand_lhs->beg < para.REORDER_WINDOW)
@@ -325,19 +326,19 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 
 	int rank_lhs = cur_cand->rank_lhs + 1;
 	int rank_rhs = cur_cand->rank_rhs;
-	if(candpq_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
+	if(candli_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		const Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		const Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 
 	rank_lhs = cur_cand->rank_lhs;
 	rank_rhs = cur_cand->rank_rhs + 1;
-	if(candpq_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
+	if(candli_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
 	{
-		const Cand *cand_lhs = candpq_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		const Cand *cand_rhs = candpq_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		const Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		const Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 }
