@@ -1,9 +1,9 @@
 #include "stdafx.h"
 
-struct NgramTrieNode  //word list are stored in reversed order
+struct NgramTrieNode
 {
-	double bow;  //bow for the word list from root to current node
-	map<int,double> probs;  //p(last word|history),where history is the above word list
+	double bow;
+	map<int,double> probs;
 	map<int,NgramTrieNode*> id2chilren_map;
 };
 
@@ -19,6 +19,5 @@ class LanguageModel
 		void add_prob_to_trie(const vector<int> &wids,double prob);
 
 	private:
-		//Vocab *tgt_vocab;
 		NgramTrieNode *root;
 };

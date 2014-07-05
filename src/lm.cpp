@@ -25,12 +25,11 @@ void LanguageModel::load_lm(const string &lm_file)
 			fin.read((char*)&prob,sizeof(double));
 			fin.read((char*)&wids[0],sizeof(int)*(order));
 			reverse(wids.begin(),wids.end());
-			//append VocabNone to the end of wids??
 			if(order != max_order)
 			{
 				fin.read((char*)&bow,sizeof(double));
 			}
-			//if(order<max_order && bow != 0.0)
+			if(order<max_order && abs(bow) > numeric_limits<double>::epsilon())
 			{
 				add_bow_to_trie(wids,bow);
 			}

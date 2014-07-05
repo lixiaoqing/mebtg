@@ -28,7 +28,7 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 		fin.read((char*)&(tgt_rule.prob_list[0]),sizeof(double)*PROB_NUM);
 		for(auto &e : tgt_rule.prob_list)
 		{
-			if( e == 0.0 )
+			if( abs(e) <= numeric_limits<double>::epsilon() )
 			{
 				e = LogP_PseudoZero;
 			}

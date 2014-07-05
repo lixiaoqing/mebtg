@@ -13,6 +13,7 @@
 #include <bitset>
 #include <queue>
 #include <functional>
+#include <limits>
 
 
 #include <zlib.h>
