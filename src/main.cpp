@@ -58,11 +58,6 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 			getline(fin,line);
 			para.BEAM_SIZE = stoi(line);
 		}
-		else if (line == "[EXTRA-BEAM-SIZE]")
-		{
-			getline(fin,line);
-			para.EXTRA_BEAM_SIZE = stoi(line);
-		}
 		else if (line == "[THREAD-NUM]")
 		{
 			getline(fin,line);

@@ -39,8 +39,8 @@ class SentenceTranslator
 		Parameter para;
 		Weight feature_weight;
 
-		vector<vector<Candli> > candli_matrix;			//存储解码过程中所有跨度对应的候选列表, 
-									//candli_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
+		vector<vector<Candli> > candli_matrix;		//存储解码过程中所有跨度对应的候选列表, 
+													//candli_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
 		vector<Cand*> pointer_recoder;				//记录所有申请的内存
 		vector<int> src_wids;
 		size_t src_sen_len;

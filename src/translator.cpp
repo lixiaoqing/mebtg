@@ -188,6 +188,7 @@ string SentenceTranslator::translate_sentence()
 	}
 	for (size_t span=1;span<src_sen_len;span++)
 	{
+//#pragma omp parallel for num_threads(para.THREAD_NUM)
 		for(size_t beg=0;beg<src_sen_len-span;beg++)
 		{
 			generate_kbest_for_span(beg,span);
@@ -227,7 +228,7 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 	set<vector<int> > duplicate_set;	//用来记录candpq_merge中的候选是否已经被扩展过
 	duplicate_set.clear();
 	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candli_matrix中,并将该候选的邻居加入candpq_merge中
-	for(size_t i=0;i<para.BEAM_SIZE+para.EXTRA_BEAM_SIZE;i++)
+	for(size_t i=0;i<para.BEAM_SIZE;i++)
 	{
 		if (candpq_merge.empty()==true)
 			break;
@@ -258,8 +259,6 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 ************************************************************************************* */
 void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, const Cand* cand_rhs,int rank_lhs,int rank_rhs,Candpq &candpq_merge)
 {
-	//if (candpq_merge.size()>2*para.BEAM_SIZE*para.BEAM_SIZE)
-		//return;
 	double mono_reorder_prob = 0;
 	double swap_reorder_prob = 0;
 	if (cand_rhs->end - cand_lhs->beg < para.REORDER_WINDOW)
