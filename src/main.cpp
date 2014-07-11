@@ -146,7 +146,7 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 		input_sen.push_back(line);
 	}
 	output_sen.resize(input_sen.size());
-#pragma omp parallel for num_threads(para.THREAD_NUM)
+//#pragma omp parallel for num_threads(para.THREAD_NUM)
 	for (size_t i=0;i<input_sen.size();i++)
 	{
 		SentenceTranslator sen_translator(models,para,weight,input_sen.at(i));
