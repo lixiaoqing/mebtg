@@ -6,26 +6,27 @@
 struct Cand	                
 {
 	//源端信息
-	int beg;			//当前候选在源语言中的起始位置
-	int end;			//当前候选在源语言中的终止位置
-	int phrase_num;			//当前候选包含的短语数
+	int beg;					//当前候选在源语言中的起始位置
+	int end;					//当前候选在源语言中的终止位置
+	int phrase_num;				//当前候选包含的短语数
 
 	//目标端信息
-	int tgt_word_num;		//当前候选目标端的单词数
+	int tgt_word_num;			//当前候选目标端的单词数
 	vector<int> tgt_wids;		//当前候选目标端的id序列
+	vector<string> tgt_words;	//当前候选目标端的单词序列
 
 	//打分信息
-	double score;			//当前候选的总得分
+	double score;				//当前候选的总得分
 	vector<double> trans_probs;	//翻译概率
 	double lm_prob;
 	double mono_reorder_prob;
 	double swap_reorder_prob;
 
 	//合并信息,记录当前候选是由两个子候选合并得来时的相关信息
-	int mid;			//记录两个子候选在源语言中的交界位置
-	int tgt_mid;			//记录两个子候选在目标语言中的交界位置,即第一个子候选目标端的长度
-	int rank_lhs;			//记录第一个子候选在优先级队列中的排名
-	int rank_rhs;			//记录第二个子候选在优先级队列中的排名
+	int mid;					//记录两个子候选在源语言中的交界位置
+	int tgt_mid;				//记录两个子候选在目标语言中的交界位置,即第一个子候选目标端的长度
+	int rank_lhs;				//记录第一个子候选在优先级队列中的排名
+	int rank_rhs;				//记录第二个子候选在优先级队列中的排名
 
 	Cand ()
 	{
@@ -35,6 +36,7 @@ struct Cand
 
 		tgt_word_num = 1;
 		tgt_wids.clear();
+		tgt_words.clear();
 
 		score = 0.0;
 		trans_probs.clear();
@@ -90,12 +92,12 @@ struct Filenames
 
 struct Parameter
 {
-	size_t BEAM_SIZE;				//优先级队列的大小限制
+	size_t BEAM_SIZE;					//优先级队列的大小限制
 	size_t EXTRA_BEAM_SIZE;
 	size_t THREAD_NUM;
 	size_t NBEST_NUM;
-	size_t REORDER_WINDOW;       			//最大调序范围
-	size_t RULE_NUM_LIMIT;			       	//源端相同的情况下最多能加载的规则数
+	size_t REORDER_WINDOW;     			//最大调序范围
+	size_t RULE_NUM_LIMIT;		      	//源端相同的情况下最多能加载的规则数
 	bool PRINT_NBEST;
 };
 
@@ -105,8 +107,8 @@ struct Weight
 	double lm;
 	double reorder_mono;
 	double reorder_swap;
-	double len;					//译文的单词数
-	double phrase_num;				//源端被切成的短语数
+	double len;							//译文的单词数
+	double phrase_num;					//源端被切成的短语数
 };
 
 #endif

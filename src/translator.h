@@ -22,7 +22,6 @@ class SentenceTranslator
 		~SentenceTranslator();
 		string translate_sentence();
 	private:
-		string wids_to_str(const vector<int> &wids);
 		void fill_matrix_with_matched_rules();
 		double cal_increased_lm_score_for_sen_frag(const Cand *cand);
 		double cal_increased_lm_score_for_whole_sen(const Cand *cand);
