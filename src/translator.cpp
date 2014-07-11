@@ -29,8 +29,16 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 
 SentenceTranslator::~SentenceTranslator()
 {
-	for (size_t i=0;i<pointer_recoder.size();i++)
-		delete pointer_recoder.at(i);
+	for (size_t i=0;i<candli_matrix.size();i++)
+	{
+		for(size_t j=0;j<candli_matrix.at(i).size();j++)
+		{
+			for(size_t k=0;k<candli_matrix.at(i).at(j).size();k++)
+			{
+				delete candli_matrix.at(i).at(j).at(k);
+			}
+		}
+	}
 }
 
 /**************************************************************************************
@@ -54,7 +62,6 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				if (span == 0)
 				{
 					Cand* cand = new Cand;
-					pointer_recoder.push_back(cand);
 					cand->beg = beg;
 					cand->end = beg+span;
 					cand->tgt_wids.push_back(tgt_vocab->get_id("<unk>"));
@@ -74,7 +81,6 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 			for (const auto &tgt_rule : *matched_rules_for_prefixes.at(span))
 			{
 				Cand* cand = new Cand;
-				pointer_recoder.push_back(cand);
 				cand->beg = beg;
 				cand->end = beg+span;
 				cand->tgt_word_num = tgt_rule.word_num;
@@ -240,7 +246,7 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			best_cand->lm_prob += increased_lm_prob;
 			best_cand->score += feature_weight.lm*increased_lm_prob;
 		}
-		candli_matrix.at(beg).at(span).add(best_cand);
+		bool flag = candli_matrix.at(beg).at(span).add(best_cand);
 		
 		vector<int> key = {best_cand->rank_lhs,best_cand->rank_rhs,best_cand->mid};
 		if (duplicate_set.find(key) == duplicate_set.end())
@@ -248,6 +254,15 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			add_neighbours_to_pq(best_cand,candpq_merge);
 			duplicate_set.insert(key);
 		}
+		if (flag == false)
+		{
+			delete best_cand;
+		}
+	}
+	while(!candpq_merge.empty())
+	{
+		delete candpq_merge.top();
+		candpq_merge.pop();
 	}
 }
 
@@ -269,7 +284,6 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	}
 	
 	Cand* cand_mono = new Cand;
-	pointer_recoder.push_back(cand_mono);
 	cand_mono->beg = cand_lhs->beg;
 	cand_mono->end = cand_rhs->end;
 	cand_mono->mid = cand_rhs->beg;
@@ -297,7 +311,6 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	if (cand_rhs->end - cand_lhs->beg >= para.REORDER_WINDOW)
 		return;
 	Cand* cand_swap = new Cand;
-	pointer_recoder.push_back(cand_swap);
 	*cand_swap = *cand_mono;
 	cand_swap->tgt_mid = cand_rhs->tgt_word_num;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
