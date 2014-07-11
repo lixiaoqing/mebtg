@@ -18,7 +18,7 @@ bool larger( const Cand *pl, const Cand *pr )
  * **********************************************************************/
 void Candli::add(Cand *cand_ptr)
 { 
-	for (Cand *e_cand_ptr : data)
+	for (auto &e_cand_ptr : data)
 	{
 		if (is_bound_same(cand_ptr,e_cand_ptr))
 		{
@@ -28,7 +28,7 @@ void Candli::add(Cand *cand_ptr)
 			}
 			if (cand_ptr->score > e_cand_ptr->score)
 			{
-				*e_cand_ptr = *cand_ptr;
+				swap(e_cand_ptr,cand_ptr);
 				return;
 			}
 		}
