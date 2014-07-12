@@ -149,6 +149,7 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 	}
 	vector<string> input_sen;
 	vector<string> output_sen;
+	vector<vector<Tune_info> > nbest_tune_info_list;
 	string line;
 	while(getline(fin,line))
 	{
@@ -156,15 +157,41 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 		input_sen.push_back(line);
 	}
 	output_sen.resize(input_sen.size());
+	nbest_tune_info_list.resize(input_sen.size());
 #pragma omp parallel for num_threads(para.SEN_THREAD_NUM)
 	for (size_t i=0;i<input_sen.size();i++)
 	{
 		SentenceTranslator sen_translator(models,para,weight,input_sen.at(i));
 		output_sen.at(i) = sen_translator.translate_sentence();
+		if (para.PRINT_NBEST == true)
+		{
+			nbest_tune_info_list.at(i) = sen_translator.get_tune_info(i);
+		}
 	}
-	for (const string &sen : output_sen)
+	for (const auto &sen : output_sen)
 	{
 		fout<<sen<<endl;
+	}
+	if (para.PRINT_NBEST == true)
+	{
+		ofstream fnbest("nbest.txt");
+		if (!fnbest.is_open())
+		{
+			cerr<<"cannot open nbest file!\n";
+			return;
+		}
+		for (const auto &nbest_tune_info : nbest_tune_info_list)
+		{
+			for (const auto &tune_info : nbest_tune_info)
+			{
+				fnbest<<tune_info.sen_id<<" ||| "<<tune_info.translation<<" ||| ";
+				for (const auto &v : tune_info.feature_values)
+				{
+					fnbest<<v<<' ';
+				}
+				fnbest<<"||| "<<tune_info.total_score<<endl;
+			}
+		}
 	}
 }
 

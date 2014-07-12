@@ -72,11 +72,20 @@ class Candli
 		void sort() { std::sort(data.begin(),data.end(),larger); }
 	private:
 		bool is_bound_same(const Cand *a, const Cand *b);
+
 	private:
 		vector<Cand*> data;
 };
 
 typedef priority_queue<Cand*, vector<Cand*>, smaller> Candpq;
+
+struct Tune_info
+{
+	size_t sen_id;
+	string translation;
+	vector<double> feature_values;
+	double total_score;
+};
 
 struct Filenames
 {

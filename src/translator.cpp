@@ -184,6 +184,49 @@ double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand* cand
 	       + lm_model->eval(sen_end_words_ext) - lm_model->eval(sen_end_words);
 }
 
+string SentenceTranslator::words_to_str(vector<string> words)
+{
+		string output = "";
+		for (const auto &word : words)
+		{
+			if (word != "<unk>")
+			{
+				output += word + " ";
+			}
+		}
+		TrimLine(output);
+		return output;
+}
+
+vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
+{
+	vector<Tune_info> nbest_tune_info;
+	Candli &candlist = candli_matrix.at(0).at(src_sen_len-1);
+	if (candlist.size() < para.NBEST_NUM)
+	{
+		cout<<"there are not enough candidates for sentence "<<sen_id<<endl;
+		exit(EXIT_FAILURE);
+	}
+	for (size_t i=0;i<para.NBEST_NUM;i++)
+	{
+		Tune_info tune_info;
+		tune_info.sen_id = sen_id;
+		tune_info.translation = words_to_str(candlist.at(i)->tgt_words);
+		for (size_t j=0;j<PROB_NUM;j++)
+		{
+			tune_info.feature_values.push_back(candlist.at(i)->trans_probs.at(j));
+		}
+		tune_info.feature_values.push_back(candlist.at(i)->lm_prob);
+		tune_info.feature_values.push_back(candlist.at(i)->mono_reorder_prob);
+		tune_info.feature_values.push_back(candlist.at(i)->swap_reorder_prob);
+		tune_info.feature_values.push_back(candlist.at(i)->tgt_word_num);
+		tune_info.feature_values.push_back(candlist.at(i)->phrase_num);
+		tune_info.total_score = candlist.at(i)->score;
+		nbest_tune_info.push_back(tune_info);
+	}
+	return nbest_tune_info;
+}
+
 string SentenceTranslator::translate_sentence()
 {
 	if (src_sen_len == 0)
@@ -201,16 +244,7 @@ string SentenceTranslator::translate_sentence()
 			candli_matrix.at(beg).at(span).sort();
 		}
 	}
-	string output = "";
-	for (const auto &word : candli_matrix.at(0).at(src_sen_len-1).top()->tgt_words)
-	{
-		if (word != "<unk>")
-		{
-			output += word + " ";
-		}
-	}
-	TrimLine(output);
-	return output;
+	return words_to_str(candli_matrix.at(0).at(src_sen_len-1).top()->tgt_words);
 }
 
 /**************************************************************************************
@@ -234,7 +268,8 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 	set<vector<int> > duplicate_set;	//用来记录candpq_merge中的候选是否已经被扩展过
 	duplicate_set.clear();
 	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candli_matrix中,并将该候选的邻居加入candpq_merge中
-	for(size_t i=0;i<para.BEAM_SIZE;i++)
+	int added_cand_num = 0;				//从candpq_merge中添加进当前候选列表中的候选数
+	while(added_cand_num < para.BEAM_SIZE)
 	{
 		if (candpq_merge.empty()==true)
 			break;
@@ -254,9 +289,13 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			add_neighbours_to_pq(best_cand,candpq_merge);
 			duplicate_set.insert(key);
 		}
-		if (flag == false)
+		if (flag == false)					//如果被丢弃或者替换掉了原来的候选
 		{
 			delete best_cand;
+		}
+		else
+		{
+			added_cand_num++;
 		}
 	}
 	while(!candpq_merge.empty())

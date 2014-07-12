@@ -8,7 +8,7 @@ bool larger( const Cand *pl, const Cand *pr )
 /************************************************************************
  1. 函数功能: 将翻译候选加入列表中, 并进行假设重组
  2. 入口参数: 翻译候选的指针
- 3. 出口参数: 无
+ 3. 出口参数: 如果候选被丢弃或者替换掉原来的候选,返回false;否则返回true
  4. 算法简介: a) 如果当前候选与优先级队列中的某个候选的目标端边界词相同,
               a.1) 如果当前候选的得分低, 则丢弃当前候选
               a.2) 如果当前候选的得分低, 则替换原候选
@@ -22,7 +22,7 @@ bool Candli::add(Cand *cand_ptr)
 	{
 		if (is_bound_same(cand_ptr,e_cand_ptr))
 		{
-			if (cand_ptr->score < e_cand_ptr->score)
+			if (cand_ptr->score <= e_cand_ptr->score)
 			{
 				return false;
 			}
