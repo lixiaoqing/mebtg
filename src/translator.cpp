@@ -194,7 +194,7 @@ string SentenceTranslator::translate_sentence()
 	}
 	for (size_t span=1;span<src_sen_len;span++)
 	{
-#pragma omp parallel for num_threads(para.THREAD_NUM)
+#pragma omp parallel for num_threads(para.SPAN_THREAD_NUM)
 		for(size_t beg=0;beg<src_sen_len-span;beg++)
 		{
 			generate_kbest_for_span(beg,span);

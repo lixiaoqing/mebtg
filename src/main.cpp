@@ -58,10 +58,15 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 			getline(fin,line);
 			para.BEAM_SIZE = stoi(line);
 		}
-		else if (line == "[THREAD-NUM]")
+		else if (line == "[SEN-THREAD-NUM]")
 		{
 			getline(fin,line);
-			para.THREAD_NUM = stoi(line);
+			para.SEN_THREAD_NUM = stoi(line);
+		}
+		else if (line == "[SPAN-THREAD-NUM]")
+		{
+			getline(fin,line);
+			para.SPAN_THREAD_NUM = stoi(line);
 		}
 		else if (line == "[NBEST-NUM]")
 		{
@@ -82,6 +87,11 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 		{
 			getline(fin,line);
 			para.PRINT_NBEST = stoi(line);
+		}
+		else if (line == "[LOAD-ALIGNMENT]")
+		{
+			getline(fin,line);
+			para.LOAD_ALIGNMENT = stoi(line);
 		}
 		else if (line == "[weight]")
 		{
@@ -146,7 +156,7 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 		input_sen.push_back(line);
 	}
 	output_sen.resize(input_sen.size());
-//#pragma omp parallel for num_threads(para.THREAD_NUM)
+#pragma omp parallel for num_threads(para.SEN_THREAD_NUM)
 	for (size_t i=0;i<input_sen.size();i++)
 	{
 		SentenceTranslator sen_translator(models,para,weight,input_sen.at(i));
@@ -163,6 +173,7 @@ int main()
 	clock_t a,b;
 	a = clock();
 
+	omp_set_nested(1);
 	Filenames fns;
 	Parameter para;
 	Weight weight;
@@ -170,7 +181,7 @@ int main()
 
 	Vocab *src_vocab = new Vocab(fns.src_vocab_file);
 	Vocab *tgt_vocab = new Vocab(fns.tgt_vocab_file);
-	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,weight,fns.rule_table_file);
+	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.rule_table_file);
 	MaxentModel *reorder_model = new MaxentModel(fns.reorder_model_file);
 	LanguageModel *lm_model = new LanguageModel(fns.lm_file);
 

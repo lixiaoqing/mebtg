@@ -38,17 +38,20 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 			}
 		}
 
-		short int alignment_num=0;
-		fin.read((char*)&alignment_num,sizeof(short int));
-		int *alignment_array = new int[alignment_num];
-		fin.read((char*)alignment_array,sizeof(int)*alignment_num);
-
-		tgt_rule.ch_pos_to_en_pos_list.resize(src_rule_len);
-		for(size_t i=0;i<alignment_num/2;i++)
+		if (LOAD_ALIGNMENT == true)
 		{
-			int ch_pos = alignment_array[2*i];
-			int en_pos = alignment_array[2*i+1];
-			tgt_rule.ch_pos_to_en_pos_list[ch_pos].push_back(en_pos);
+			short int alignment_num=0;
+			fin.read((char*)&alignment_num,sizeof(short int));
+			int *alignment_array = new int[alignment_num];
+			fin.read((char*)alignment_array,sizeof(int)*alignment_num);
+
+			tgt_rule.ch_pos_to_en_pos_list.resize(src_rule_len);
+			for(size_t i=0;i<alignment_num/2;i++)
+			{
+				int ch_pos = alignment_array[2*i];
+				int en_pos = alignment_array[2*i+1];
+				tgt_rule.ch_pos_to_en_pos_list[ch_pos].push_back(en_pos);
+			}
 		}
 
 

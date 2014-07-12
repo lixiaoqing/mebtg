@@ -20,9 +20,10 @@ struct RuleTrieNode
 class RuleTable
 {
 	public:
-		RuleTable(const size_t size_limit,const Weight &i_weight,const string &rule_table_file)
+		RuleTable(const size_t size_limit,bool load_alignment,const Weight &i_weight,const string &rule_table_file)
 		{
 			RULE_NUM_LIMIT=size_limit;
+			LOAD_ALIGNMENT = load_alignment;
 			weight=i_weight;
 			root=new RuleTrieNode;
 			load_rule_table(rule_table_file);
@@ -35,6 +36,7 @@ class RuleTable
 
 	private:
 		int RULE_NUM_LIMIT;
+		bool LOAD_ALIGNMENT;
 		RuleTrieNode *root;
 		Weight weight;
 };

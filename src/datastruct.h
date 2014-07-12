@@ -93,11 +93,13 @@ struct Filenames
 struct Parameter
 {
 	size_t BEAM_SIZE;					//优先级队列的大小限制
-	size_t THREAD_NUM;
+	size_t SEN_THREAD_NUM;				//句子级并行数
+	size_t SPAN_THREAD_NUM;				//span级并行数
 	size_t NBEST_NUM;
 	size_t REORDER_WINDOW;     			//最大调序范围
 	size_t RULE_NUM_LIMIT;		      	//源端相同的情况下最多能加载的规则数
 	bool PRINT_NBEST;
+	bool LOAD_ALIGNMENT;				//加载短语表时是否加载短语内部的词对齐
 };
 
 struct Weight
