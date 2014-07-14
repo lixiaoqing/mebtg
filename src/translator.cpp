@@ -71,7 +71,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					{
 						cand->score += feature_weight.trans.at(i)*cand->trans_probs.at(i);
 					}
-					cand->lm_prob = cal_increased_lm_score_for_sen_frag(cand);
+					cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 					cand->score += feature_weight.phrase_num*cand->phrase_num 
 						       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
 					candli_matrix.at(beg).at(span).add(cand);
@@ -91,7 +91,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				}
 				cand->trans_probs = tgt_rule.prob_list;
 				cand->score = tgt_rule.score;
-				cand->lm_prob = cal_increased_lm_score_for_sen_frag(cand);
+				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 				cand->score += feature_weight.phrase_num*cand->phrase_num 
 					       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
 				candli_matrix.at(beg).at(span).add(cand);
@@ -130,58 +130,6 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 	vector<double> reorder_prob_vec;
 	reorder_model->eval_all(reorder_prob_vec,feature_vec);
 	return make_pair(reorder_prob_vec[reorder_model->get_tagid("straight")],reorder_prob_vec[reorder_model->get_tagid("inverted")]);
-}
-
-/**************************************************************************************
- 1. 函数功能: 计算生成当前候选的语言模型打分增量
- 2. 入口参数: 当前候选
- 3. 出口参数: 语言模型打分增量
- 4. 算法简介: a) 如果当前候选是根据短语表中的规则生成的,则直接计算候选译文的语言模型打分
-              b) 如果当前候选由两个子候选合并得来,则计算合并边界所增加的语言模型打分
-************************************************************************************* */
-double SentenceTranslator::cal_increased_lm_score_for_sen_frag(const Cand* cand)
-{
-	const vector<string> &words = cand->tgt_words;
-	if (cand->tgt_mid == -1)
-	{
-		return lm_model->eval(words);
-	}
-	else
-	{
-		size_t size_lhs = cand->tgt_mid;
-		size_t size_rhs = words.size() - size_lhs;
-		size_t rbound_size_lhs = min(size_lhs, LM_ORDER-1);		//左候选的右边界大小
-		size_t lound_size_rhs = min(size_rhs, LM_ORDER-1);
-		auto it_split = words.begin() + size_lhs;
-		vector<string> bound_words_lhs(it_split-rbound_size_lhs,it_split);
-		vector<string> bound_words_rhs(it_split,it_split+lound_size_rhs);
-		vector<string> combined_bound_words(it_split-rbound_size_lhs,it_split+lound_size_rhs);
-		return lm_model->eval(combined_bound_words) - lm_model->eval(bound_words_lhs) - lm_model->eval(bound_words_rhs);
-	}
-}
-
-/**************************************************************************************
- 1. 函数功能: 计算生成完整句子的语言模型打分增量
- 2. 入口参数: 当前候选
- 3. 出口参数: 语言模型打分增量
- 4. 算法简介: 在句首及句尾添加标记,然后计算语言模型打分增量
-************************************************************************************* */
-double SentenceTranslator::cal_increased_lm_score_for_whole_sen(const Cand* cand)
-{
-	const vector<string> &words = cand->tgt_words;
-	size_t len = words.size();
-	size_t bound = min(len,LM_ORDER-1);
-	vector<string> sen_beg_words(words.begin(),words.begin()+bound);
-	vector<string> sen_end_words(words.end()-bound,words.end());
-
-	vector<string> sen_beg_words_ext, sen_end_words_ext;
-	sen_beg_words_ext.push_back("<s>");
-	sen_beg_words_ext.insert(sen_beg_words_ext.end(), sen_beg_words.begin(), sen_beg_words.end());
-	sen_end_words_ext = sen_end_words;
-	sen_end_words_ext.push_back("</s>");
-	sen_end_words.erase(sen_end_words.begin());
-	return lm_model->eval(sen_beg_words_ext) - lm_model->eval(sen_beg_words) 
-	       + lm_model->eval(sen_end_words_ext) - lm_model->eval(sen_end_words);
 }
 
 string SentenceTranslator::words_to_str(vector<string> words)
@@ -260,8 +208,8 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 	//对于当前跨度的每种分割方式,取出左跨度和右跨度中的最好候选,将合并得到的候选加入candpq_merge
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
 	{
-		const Cand *best_cand_lhs = candli_matrix.at(beg).at(span_lhs).top();
-		const Cand *best_cand_rhs = candli_matrix.at(beg+span_lhs+1).at(span-span_lhs-1).top();
+		Cand *best_cand_lhs = candli_matrix.at(beg).at(span_lhs).top();
+		Cand *best_cand_rhs = candli_matrix.at(beg+span_lhs+1).at(span-span_lhs-1).top();
 		merge_subcands_and_add_to_pq(best_cand_lhs,best_cand_rhs,1,1,candpq_merge);
 	}
 
@@ -277,7 +225,7 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 		candpq_merge.pop();
 		if (span == src_sen_len-1)
 		{
-			double increased_lm_prob = cal_increased_lm_score_for_whole_sen(best_cand);
+			double increased_lm_prob = lm_model->cal_final_increased_lm_score(best_cand);
 			best_cand->lm_prob += increased_lm_prob;
 			best_cand->score += feature_weight.lm*increased_lm_prob;
 		}
@@ -311,7 +259,7 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
  3. 出口参数: 更新后的candpq_merge
  4. 算法简介: 顺序以及逆序合并两个子候选
 ************************************************************************************* */
-void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, const Cand* cand_rhs,int rank_lhs,int rank_rhs,Candpq &candpq_merge)
+void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand_rhs,int rank_lhs,int rank_rhs,Candpq &candpq_merge)
 {
 	double mono_reorder_prob = 0;
 	double swap_reorder_prob = 0;
@@ -333,6 +281,8 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
 	cand_mono->rank_lhs = rank_lhs;
 	cand_mono->rank_rhs = rank_rhs;
+	cand_mono->child_lhs = cand_lhs;
+	cand_mono->child_rhs = cand_rhs;
 	cand_mono->tgt_wids = cand_lhs->tgt_wids;
 	cand_mono->tgt_wids.insert(cand_mono->tgt_wids.end(),cand_rhs->tgt_wids.begin(),cand_rhs->tgt_wids.end());
 	cand_mono->tgt_words = cand_lhs->tgt_words;
@@ -341,7 +291,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 	{
 		cand_mono->trans_probs.push_back(cand_lhs->trans_probs.at(i)+cand_rhs->trans_probs.at(i));
 	}
-	double increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_mono);
+	double increased_lm_prob = lm_model->cal_increased_lm_score(cand_mono);
 	cand_mono->lm_prob = cand_lhs->lm_prob + cand_rhs->lm_prob + increased_lm_prob;
 	cand_mono->score = cand_lhs->score + cand_rhs->score 
 		           + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*mono_reorder_prob;
@@ -351,12 +301,14 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(const Cand* cand_lhs, cons
 		return;
 	Cand* cand_swap = new Cand;
 	*cand_swap = *cand_mono;
+	cand_swap->child_lhs = cand_rhs;
+	cand_swap->child_rhs = cand_lhs;
 	cand_swap->tgt_mid = cand_rhs->tgt_word_num;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
 	cand_swap->tgt_words = cand_rhs->tgt_words;
 	cand_swap->tgt_words.insert(cand_swap->tgt_words.end(),cand_lhs->tgt_words.begin(),cand_lhs->tgt_words.end());
-	increased_lm_prob = cal_increased_lm_score_for_sen_frag(cand_swap);
+	increased_lm_prob = lm_model->cal_increased_lm_score(cand_swap);
 	cand_swap->lm_prob = cand_lhs->lm_prob + cand_rhs->lm_prob + increased_lm_prob;
 	cand_swap->score = cand_lhs->score + cand_rhs->score 
 		           + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*swap_reorder_prob;
@@ -382,8 +334,8 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	int rank_rhs = cur_cand->rank_rhs;
 	if(candli_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
 	{
-		const Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		const Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 
@@ -391,8 +343,8 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 	rank_rhs = cur_cand->rank_rhs + 1;
 	if(candli_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
 	{
-		const Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		const Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 }

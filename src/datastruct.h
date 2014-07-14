@@ -1,6 +1,7 @@
 #ifndef DATASTRUCT_H
 #define DATASTRUCT_H
 #include "stdafx.h"
+#include "lm/left.hh"
 
 //存储翻译候选
 struct Cand	                
@@ -27,6 +28,11 @@ struct Cand
 	int tgt_mid;				//记录两个子候选在目标语言中的交界位置,即第一个子候选目标端的长度
 	int rank_lhs;				//记录第一个子候选在优先级队列中的排名
 	int rank_rhs;				//记录第二个子候选在优先级队列中的排名
+	Cand* child_lhs;			//指向第一个子候选的指针
+	Cand* child_rhs;			//指向第一个子候选的指针
+
+	//语言模型状态信息
+	lm::ngram::ChartState lm_state;
 
 	Cand ()
 	{
@@ -48,6 +54,9 @@ struct Cand
 		tgt_mid = -1;
 		rank_lhs = 0;
 		rank_rhs = 0;
+
+		child_lhs = NULL;
+		child_rhs = NULL;
 	}
 };
 

@@ -210,7 +210,7 @@ int main()
 	Vocab *tgt_vocab = new Vocab(fns.tgt_vocab_file);
 	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.rule_table_file);
 	MaxentModel *reorder_model = new MaxentModel(fns.reorder_model_file);
-	LanguageModel *lm_model = new LanguageModel(fns.lm_file);
+	LanguageModel *lm_model = new LanguageModel(fns.lm_file,tgt_vocab);
 
 	b = clock();
 	cout<<"loading time: "<<double(b-a)/CLOCKS_PER_SEC<<endl;

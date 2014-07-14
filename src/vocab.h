@@ -1,3 +1,6 @@
+#ifndef VOCAB_H
+#define VOCAB_H
+
 #include "stdafx.h"
 
 class Vocab
@@ -12,3 +15,5 @@ class Vocab
 		vector<string> word_list;
 		map<string,int> word2id;
 };
+
+#endif
