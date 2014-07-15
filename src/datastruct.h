@@ -80,11 +80,10 @@ class Candli
 		int size() { return data.size();  }
 		void sort() { std::sort(data.begin(),data.end(),larger); }
 	private:
-		vector<int> get_bound_wids(const Cand *cand_ptr);
+		bool is_bound_same(const Cand *a, const Cand *b);
 
 	private:
 		vector<Cand*> data;
-		map<vector<int>,Cand*> bound_to_cand_map;
 };
 
 typedef priority_queue<Cand*, vector<Cand*>, smaller> Candpq;

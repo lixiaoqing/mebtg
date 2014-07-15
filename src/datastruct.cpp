@@ -18,33 +18,40 @@ bool larger( const Cand *pl, const Cand *pr )
  * **********************************************************************/
 bool Candli::add(Cand *cand_ptr)
 { 
-	vector<int> bound_wids = get_bound_wids(cand_ptr);
-	auto it = bound_to_cand_map.find(bound_wids);
-	if (it != bound_to_cand_map.end())
+	for (auto &e_cand_ptr : data)
 	{
-		if (cand_ptr->score <= it->second->score)
+		if (is_bound_same(cand_ptr,e_cand_ptr))
 		{
-			return false;
-		}
-		else
-		{
-			*(it->second) = *cand_ptr;
-			return false;
+			if (cand_ptr->score <= e_cand_ptr->score)
+			{
+				return false;
+			}
+			if (cand_ptr->score > e_cand_ptr->score)
+			{
+				*e_cand_ptr = *cand_ptr;
+				return false;
+			}
 		}
 	}
-	data.push_back(cand_ptr);
-	bound_to_cand_map.insert(make_pair(bound_wids,cand_ptr));
+	data.push_back(cand_ptr); 
 	return true;
 }
 
-vector<int> Candli::get_bound_wids(const Cand *cand_ptr)
+bool Candli::is_bound_same(const Cand *a, const Cand *b)
 {
-	const vector<int> &wids = cand_ptr->tgt_wids;
-	size_t BOUND_SIZE = LM_ORDER -1;
-	if (wids.size() <= 2*BOUND_SIZE)
-		return wids;
-	vector<int> bound_wids(wids.begin(),wids.begin()+BOUND_SIZE);
-	bound_wids.insert(bound_wids.end(),wids.end()-BOUND_SIZE,wids.end());
-	return bound_wids;
+	size_t len_a = a->tgt_wids.size();
+	size_t len_b = b->tgt_wids.size();
+	size_t bound_len_a = min(len_a, LM_ORDER-1);
+	size_t bound_len_b = min(len_b, LM_ORDER-1);
+	if (bound_len_a != bound_len_b)
+		return false;
+	if (bound_len_a < LM_ORDER && a->tgt_wids != b->tgt_wids)
+		return false;
+	for (size_t i=0;i<bound_len_a;i++)
+	{
+		if (a->tgt_wids.at(i) != b->tgt_wids.at(i) || a->tgt_wids.at(len_a-1-i) != b->tgt_wids.at(len_b-1-i))
+			return false;
+	}
+	return true;
 }
 
