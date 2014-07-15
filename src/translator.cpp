@@ -278,7 +278,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_mono->tgt_mid = cand_lhs->tgt_word_num;
 	cand_mono->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
 	cand_mono->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob + mono_reorder_prob;
-	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
+	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob;
 	cand_mono->rank_lhs = rank_lhs;
 	cand_mono->rank_rhs = rank_rhs;
 	cand_mono->child_lhs = cand_lhs;
@@ -308,6 +308,8 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
 	cand_swap->tgt_words = cand_rhs->tgt_words;
 	cand_swap->tgt_words.insert(cand_swap->tgt_words.end(),cand_lhs->tgt_words.begin(),cand_lhs->tgt_words.end());
+	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
+	cand_swap->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
 	increased_lm_prob = lm_model->cal_increased_lm_score(cand_swap);
 	cand_swap->lm_prob = cand_lhs->lm_prob + cand_rhs->lm_prob + increased_lm_prob;
 	cand_swap->score = cand_lhs->score + cand_rhs->score 
