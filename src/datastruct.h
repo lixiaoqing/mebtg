@@ -14,7 +14,6 @@ struct Cand
 	//目标端信息
 	int tgt_word_num;			//当前候选目标端的单词数
 	vector<int> tgt_wids;		//当前候选目标端的id序列
-	vector<string> tgt_words;	//当前候选目标端的单词序列
 
 	//打分信息
 	double score;				//当前候选的总得分
@@ -42,7 +41,6 @@ struct Cand
 
 		tgt_word_num = 1;
 		tgt_wids.clear();
-		tgt_words.clear();
 
 		score = 0.0;
 		trans_probs.clear();

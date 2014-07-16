@@ -65,7 +65,6 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					cand->beg = beg;
 					cand->end = beg+span;
 					cand->tgt_wids.push_back(tgt_vocab->get_id("<unk>"));
-					cand->tgt_words.push_back("<unk>");
 					cand->trans_probs.resize(PROB_NUM,LogP_PseudoZero);
 					for (size_t i=0;i<PROB_NUM;i++)
 					{
@@ -85,10 +84,6 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand->end = beg+span;
 				cand->tgt_word_num = tgt_rule.word_num;
 				cand->tgt_wids = tgt_rule.word_id_list;
-				for (const auto &wid : cand->tgt_wids)
-				{
-					cand->tgt_words.push_back(tgt_vocab->get_word(wid));
-				}
 				cand->trans_probs = tgt_rule.prob_list;
 				cand->score = tgt_rule.score;
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
@@ -132,12 +127,13 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 	return make_pair(reorder_prob_vec[reorder_model->get_tagid("straight")],reorder_prob_vec[reorder_model->get_tagid("inverted")]);
 }
 
-string SentenceTranslator::words_to_str(vector<string> words)
+string SentenceTranslator::words_to_str(vector<int> wids, bool drop_unk)
 {
 		string output = "";
-		for (const auto &word : words)
+		for (const auto &wid : wids)
 		{
-			if (word != "<unk>")
+			string word = tgt_vocab->get_word(wid);
+			if (word != "<unk>" || drop_unk == false)
 			{
 				output += word + " ";
 			}
@@ -159,7 +155,7 @@ vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
 	{
 		Tune_info tune_info;
 		tune_info.sen_id = sen_id;
-		tune_info.translation = words_to_str(candlist.at(i)->tgt_words);
+		tune_info.translation = words_to_str(candlist.at(i)->tgt_wids,false);
 		for (size_t j=0;j<PROB_NUM;j++)
 		{
 			tune_info.feature_values.push_back(candlist.at(i)->trans_probs.at(j));
@@ -192,7 +188,7 @@ string SentenceTranslator::translate_sentence()
 			candli_matrix.at(beg).at(span).sort();
 		}
 	}
-	return words_to_str(candli_matrix.at(0).at(src_sen_len-1).top()->tgt_words);
+	return words_to_str(candli_matrix.at(0).at(src_sen_len-1).top()->tgt_wids,true);
 }
 
 /**************************************************************************************
@@ -285,8 +281,6 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_mono->child_rhs = cand_rhs;
 	cand_mono->tgt_wids = cand_lhs->tgt_wids;
 	cand_mono->tgt_wids.insert(cand_mono->tgt_wids.end(),cand_rhs->tgt_wids.begin(),cand_rhs->tgt_wids.end());
-	cand_mono->tgt_words = cand_lhs->tgt_words;
-	cand_mono->tgt_words.insert(cand_mono->tgt_words.end(),cand_rhs->tgt_words.begin(),cand_rhs->tgt_words.end());
 	for (size_t i=0;i<PROB_NUM;i++)
 	{
 		cand_mono->trans_probs.push_back(cand_lhs->trans_probs.at(i)+cand_rhs->trans_probs.at(i));
@@ -306,8 +300,6 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_swap->tgt_mid = cand_rhs->tgt_word_num;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
-	cand_swap->tgt_words = cand_rhs->tgt_words;
-	cand_swap->tgt_words.insert(cand_swap->tgt_words.end(),cand_lhs->tgt_words.begin(),cand_lhs->tgt_words.end());
 	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
 	cand_swap->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
 	increased_lm_prob = lm_model->cal_increased_lm_score(cand_swap);

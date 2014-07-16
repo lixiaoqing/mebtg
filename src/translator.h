@@ -30,7 +30,7 @@ class SentenceTranslator
 		void generate_kbest_for_span(const size_t beg,const size_t span);
 		void merge_subcands_and_add_to_pq(Cand *cand_lhs, Cand *cand_rhs,int rank_lhs,int rank_rhs,Candpq &new_cands_by_mergence);
 		void add_neighbours_to_pq(Cand *cur_cand, Candpq &new_cands_by_mergence);
-		string words_to_str(vector<string> words);
+		string words_to_str(vector<int> wids, bool drop_unk);
 
 	private:
 		Vocab *src_vocab;
