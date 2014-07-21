@@ -6,14 +6,14 @@
 class Vocab
 {
 	public:
-		Vocab(const string &dict_file) {load_dict(dict_file);};
+		Vocab(const string &vocab_file) {load_vocab(vocab_file);};
 		string get_word(int id){return word_list.at(id);};
 		int get_id(const string &word);
 	private:
-		void load_dict(const string &dict_file);
+		void load_vocab(const string &vocab_file);
 	private:
 		vector<string> word_list;
-		map<string,int> word2id;
+		unordered_map<string,int> word2id;
 };
 
 #endif

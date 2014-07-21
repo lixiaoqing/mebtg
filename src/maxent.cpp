@@ -138,12 +138,10 @@ void MaxentModel::load_txt(const string &modelfile)
 		lambdaVec.push_back(lambda);
 	}
 }
-/*
-*/
 
 int MaxentModel::get_tagid(string tag)
 {
-	map <string,size_t>::iterator it = tag2id.find(tag);
+	auto it = tag2id.find(tag);
 	if (it != tag2id.end())
 	{
 		return it->second;
@@ -167,7 +165,7 @@ void MaxentModel::eval_all(vector<double> &me_scores, vector<string> &context)
 	
 	for (size_t i = 0; i < context.size(); i ++)
 	{
-		map<string,size_t>::iterator iter = feature2id.find(context.at(i));
+		auto iter = feature2id.find(context.at(i));
 		if (iter != feature2id.end())
 		{
 			int featureid = iter->second;

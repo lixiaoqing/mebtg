@@ -15,8 +15,8 @@ class MaxentModel
 		size_t feature_num;
 		size_t tag_num;
 		size_t lambda_num;
-		map <string,size_t> feature2id;
-		map <string,size_t> tag2id;
+		unordered_map <string,size_t> feature2id;
+		unordered_map <string,size_t> tag2id;
 		vector <string> featureVec;
 		vector <double> lambdaVec;
 		vector <size_t> lambda2tagVec;

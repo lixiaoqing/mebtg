@@ -14,7 +14,7 @@ struct TgtRule
 struct RuleTrieNode 
 {
 	vector<TgtRule> tgt_rule_list;
-	map <int, RuleTrieNode*> id2chilren_map;
+	unordered_map <int, RuleTrieNode*> id2chilren_map;
 };
 
 class RuleTable

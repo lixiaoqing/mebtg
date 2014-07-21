@@ -1,11 +1,11 @@
 #include "vocab.h"
 
-void Vocab::load_dict(const string &dict_file)
+void Vocab::load_vocab(const string &vocab_file)
 {
-	ifstream fin(dict_file.c_str());
+	ifstream fin(vocab_file.c_str());
 	if (!fin.is_open())
 	{
-		cerr<<"cannot open dict file!\n";
+		cerr<<"cannot open vocab file!\n";
 		return;
 	}
 	string line;
