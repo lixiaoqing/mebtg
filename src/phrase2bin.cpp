@@ -16,14 +16,24 @@ void phrase2bin(string phrase_filename,string mode)
 	}
 	ofstream fout;
 	if (mode == "0")
-		fout.open("prob.bin-with-alignment",ios::binary);
-	else
 		fout.open("prob.bin-without-alignment",ios::binary);
+	else
+		fout.open("prob.bin-with-alignment",ios::binary);
 	if (!fout.is_open())
 	{
 		cout<<"fail open model file to write!\n";
 		return;
 	}
+
+	vector<int> ch_phrase_lens;
+	vector<int> ch_wids;
+	vector<int> en_phrase_lens;
+	vector<int> en_wids;
+	vector<double> probs;
+	vector<int> alignment_nums;
+	vector<int> src_alignments;
+	vector<int> tgt_alignments;
+	int phrase_num,ch_wids_len,en_wids_len,alignments_len;
 	string line;
 	while(getline(fin,line))
 	{
@@ -34,79 +44,84 @@ void phrase2bin(string phrase_filename,string mode)
 		{
 			TrimLine(e);
 		}
-		vector <string> ch_word_vec;
-		Split(ch_word_vec,elements[0]);
-		vector <int> ch_id_vec;
-		for (const auto &ch_word : ch_word_vec)
+		vector <string> ch_words;
+		Split(ch_words,elements[0]);
+		ch_phrase_lens.push_back(ch_words.size());
+		for (const auto &ch_word : ch_words)
 		{
 			auto it = ch_vocab.find(ch_word);
 			if (it != ch_vocab.end())
 			{
-				ch_id_vec.push_back(it->second);
+				ch_wids.push_back(it->second);
 			}
 			else
 			{
-				ch_id_vec.push_back(ch_word_id);
+				ch_wids.push_back(ch_word_id);
 				ch_vocab.insert(make_pair(ch_word,ch_word_id));
 				ch_vocab_vec.push_back(ch_word);
 				ch_word_id++;
 			}
 		}
 
-		vector <string> en_word_vec;
-		Split(en_word_vec,elements[1]);
-		vector <int> en_id_vec;
-		for (const auto &en_word : en_word_vec)
+		vector <string> en_words;
+		Split(en_words,elements[1]);
+		en_phrase_lens.push_back(en_words.size());
+		for (const auto &en_word : en_words)
 		{
 			auto it = en_vocab.find(en_word);
 			if (it != en_vocab.end())
 			{
-				en_id_vec.push_back(it->second);
+				en_wids.push_back(it->second);
 			}
 			else
 			{
-				en_id_vec.push_back(en_word_id);
+				en_wids.push_back(en_word_id);
 				en_vocab.insert(make_pair(en_word,en_word_id));
 				en_vocab_vec.push_back(en_word);
 				en_word_id++;
 			}
 		}
 
-		vector <string> prob_str_vec;
-		vector <double> prob_vec;
-		Split(prob_str_vec,elements[2]);
-		for (const auto &prob_str : prob_str_vec)
+		vector <string> prob_strs;
+		Split(prob_strs,elements[2]);
+		for (const auto &prob_str : prob_strs)
 		{
-			prob_vec.push_back(stod(prob_str));
+			probs.push_back(stod(prob_str));
 		}
 
-		vector <string> alignments;
-		vector <int> alignment_vec;
+		vector <string> alignment_strs;
 		sep = "-";
-		if (mode == "0")
+		if (mode == "1")
 		{
-			Split(alignments,elements[3]);
-			for (auto &align_str : alignments)
+			Split(alignment_strs,elements[3]);
+			alignment_nums.push_back(alignment_strs.size());
+			for (auto &align_str : alignment_strs)
 			{
 				vector <string> pos_pair;
 				Split(pos_pair,align_str,sep);
-				alignment_vec.push_back(stoi(pos_pair[0]));
-				alignment_vec.push_back(stoi(pos_pair[1]));
+				src_alignments.push_back(stoi(pos_pair[0]));
+				tgt_alignments.push_back(stoi(pos_pair[1]));
 			}
 		}
-		short int ch_phrase_len = ch_id_vec.size();
-		short int en_phrase_len = en_id_vec.size();
-		short int alignment_vec_len = alignment_vec.size();
-		fout.write((char*)&ch_phrase_len,sizeof(short int));
-		fout.write((char*)&ch_id_vec[0],sizeof(int)*ch_phrase_len);
-		fout.write((char*)&en_phrase_len,sizeof(short int));
-		fout.write((char*)&en_id_vec[0],sizeof(int)*en_phrase_len);
-		fout.write((char*)&prob_vec[0],sizeof(double)*prob_vec.size());
-		if (mode == "0")
-		{
-			fout.write((char*)&alignment_vec_len,sizeof(short int));
-			fout.write((char*)&alignment_vec[0],sizeof(int)*alignment_vec.size());
-		}
+	}
+	phrase_num = ch_phrase_lens.size();
+	ch_wids_len = ch_wids.size();
+	en_wids_len = en_wids.size();
+	fout.write((char*)&phrase_num,sizeof(int));
+	fout.write((char*)&ch_wids_len,sizeof(int));
+	fout.write((char*)&en_wids_len,sizeof(int));
+	fout.write((char*)&ch_phrase_lens[0],sizeof(int)*phrase_num);
+	fout.write((char*)&ch_wids[0],sizeof(int)*ch_wids_len);
+	fout.write((char*)&en_phrase_lens[0],sizeof(int)*phrase_num);
+	fout.write((char*)&en_wids[0],sizeof(int)*en_wids_len);
+	fout.write((char*)&probs[0],sizeof(double)*phrase_num*4);
+	if (mode == "1")
+	{
+		fout.write((char*)&alignment_nums[0],sizeof(int)*phrase_num);
+		alignments_len = src_alignments.size();
+		fout.write((char*)&alignments_len,sizeof(int));
+		fout.write((char*)&src_alignments[0],sizeof(int)*alignments_len);
+		fout.write((char*)&tgt_alignments[0],sizeof(int)*alignments_len);
 	}
 	fout.close();
 
@@ -139,7 +154,7 @@ int main(int argc,char* argv[])
 {
     if(argc == 1)
     {
-		cout<<"usage: ./phrase2bin phrase_filename mode\nconvert alignment if mode==0, don't convert if mode==1\n";
+		cout<<"usage: ./phrase2bin phrase_filename mode\ndon't write alignment if mode==0, write if mode==1\n";
 		return 0;
     }
     string phrase_filename(argv[1]);

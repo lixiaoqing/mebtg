@@ -83,7 +83,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand->beg = beg;
 				cand->end = beg+span;
 				cand->tgt_word_num = tgt_rule.word_num;
-				cand->tgt_wids = tgt_rule.word_id_list;
+				cand->tgt_wids = tgt_rule.wids;
 				cand->trans_probs = tgt_rule.prob_list;
 				cand->score = tgt_rule.score;
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
