@@ -1,4 +1,5 @@
 #include "myutils.h"
+const int LEN = 4096;
 
 void phrase2bin(string phrase_filename,string mode)
 {
@@ -8,8 +9,8 @@ void phrase2bin(string phrase_filename,string mode)
 	vector<string> en_vocab_vec;
 	int ch_word_id = 0;
 	int en_word_id = 0;
-	ifstream fin(phrase_filename.c_str());
-	if (!fin.is_open())
+	gzFile gzfp = gzopen(phrase_filename.c_str(),"r");
+	if (!gzfp)
 	{
 		cout<<"fail to open "<<phrase_filename<<endl;
 		return;
@@ -24,9 +25,10 @@ void phrase2bin(string phrase_filename,string mode)
 		cout<<"fail open model file to write!\n";
 		return;
 	}
-	string line;
-	while(getline(fin,line))
+	char buf[LEN];
+	while( gzgets(gzfp,buf,LEN) != Z_NULL)
 	{
+		string line(buf);
 		vector <string> elements;
 		string sep = "|||";
 		Split(elements,line,sep);
@@ -108,6 +110,7 @@ void phrase2bin(string phrase_filename,string mode)
 			fout.write((char*)&alignment_vec[0],sizeof(int)*alignment_vec.size());
 		}
 	}
+	gzclose(gzfp);
 	fout.close();
 
 	ofstream f_ch_vocab("vocab.ch");
@@ -139,7 +142,7 @@ int main(int argc,char* argv[])
 {
     if(argc == 1)
     {
-		cout<<"usage: ./phrase2bin phrase_filename mode\nconvert alignment if mode==1, don't convert if mode==0\n";
+		cout<<"usage: ./phrase2bin phrase.gz mode\nconvert alignment if mode==1, don't convert if mode==0\n";
 		return 0;
     }
     string phrase_filename(argv[1]);
