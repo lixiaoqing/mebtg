@@ -133,6 +133,21 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 	}
 }
 
+void parse_args(int argc, char *argv[],Filenames &fns,Parameter &para, Weight &weight)
+{
+	read_config(fns,para,weight,"config.ini");
+	for( int i=1; i<argc; i++ )
+	{
+		string arg( argv[i] );
+		if( arg == "-n-best-list" )
+		{
+			fns.nbest_file = argv[++i];
+			para.NBEST_NUM = stoi(argv[++i]);
+		}
+
+	}
+}
+
 void translate_file(const Models &models, const Parameter &para, const Weight &weight, const string &input_file, const string &output_file)
 {
 	ifstream fin(input_file.c_str());
@@ -195,7 +210,7 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 	}
 }
 
-int main()
+int main( int argc, char *argv[])
 {
 	clock_t a,b;
 	a = clock();
@@ -204,7 +219,7 @@ int main()
 	Filenames fns;
 	Parameter para;
 	Weight weight;
-	read_config(fns,para,weight,"config.ini");
+	parse_args(argc,argv,fns,para,weight);
 
 	Vocab *src_vocab = new Vocab(fns.src_vocab_file);
 	Vocab *tgt_vocab = new Vocab(fns.tgt_vocab_file);
