@@ -64,7 +64,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					Cand* cand = new Cand;
 					cand->beg = beg;
 					cand->end = beg+span;
-					cand->tgt_wids.push_back(tgt_vocab->get_id("<unk>"));
+					cand->tgt_wids.push_back(tgt_vocab->get_id("NULL"));
 					cand->trans_probs.resize(PROB_NUM,LogP_PseudoZero);
 					for (size_t i=0;i<PROB_NUM;i++)
 					{
@@ -133,7 +133,7 @@ string SentenceTranslator::words_to_str(vector<int> wids, bool drop_unk)
 		for (const auto &wid : wids)
 		{
 			string word = tgt_vocab->get_word(wid);
-			if (word != "<unk>" || drop_unk == false)
+			if (word != "NULL" || drop_unk == false)
 			{
 				output += word + " ";
 			}
@@ -146,12 +146,14 @@ vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
 {
 	vector<Tune_info> nbest_tune_info;
 	Candli &candlist = candli_matrix.at(0).at(src_sen_len-1);
+	/*
 	if (candlist.size() < para.NBEST_NUM)
 	{
 		cout<<"there are not enough candidates for sentence "<<sen_id<<endl;
 		exit(EXIT_FAILURE);
 	}
-	for (size_t i=0;i<para.NBEST_NUM;i++)
+	*/
+	for (size_t i=0;i< (candlist.size()<para.NBEST_NUM?candlist.size():para.NBEST_NUM);i++)
 	{
 		Tune_info tune_info;
 		tune_info.sen_id = sen_id;
