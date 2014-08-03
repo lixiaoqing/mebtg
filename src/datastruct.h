@@ -24,7 +24,6 @@ struct Cand
 
 	//合并信息,记录当前候选是由两个子候选合并得来时的相关信息
 	int mid;					//记录两个子候选在源语言中的交界位置
-	int tgt_mid;				//记录两个子候选在目标语言中的交界位置,即第一个子候选目标端的长度
 	int rank_lhs;				//记录第一个子候选在优先级队列中的排名
 	int rank_rhs;				//记录第二个子候选在优先级队列中的排名
 	Cand* child_lhs;			//指向第一个子候选的指针
@@ -49,7 +48,6 @@ struct Cand
 		swap_reorder_prob = 0.0;
 
 		mid = -1;
-		tgt_mid = -1;
 		rank_lhs = 0;
 		rank_rhs = 0;
 

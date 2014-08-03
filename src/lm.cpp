@@ -38,7 +38,7 @@ lm::WordIndex LanguageModel::convert_to_kenlm_id(int wid)
 double LanguageModel::cal_increased_lm_score(Cand* cand) 
 {
 	RuleScore<Model> rule_score(*kenlm,cand->lm_state);
-	if( cand->tgt_mid >= 0 ) 
+	if( cand->mid >= 0 ) 
 	{
 		rule_score.BeginNonTerminal((cand->child_lhs)->lm_state);
 		rule_score.NonTerminal((cand->child_rhs)->lm_state);

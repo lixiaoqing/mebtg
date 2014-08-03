@@ -146,13 +146,6 @@ vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
 {
 	vector<Tune_info> nbest_tune_info;
 	Candli &candlist = candli_matrix.at(0).at(src_sen_len-1);
-	/*
-	if (candlist.size() < para.NBEST_NUM)
-	{
-		cout<<"there are not enough candidates for sentence "<<sen_id<<endl;
-		exit(EXIT_FAILURE);
-	}
-	*/
 	for (size_t i=0;i< (candlist.size()<para.NBEST_NUM?candlist.size():para.NBEST_NUM);i++)
 	{
 		Tune_info tune_info;
@@ -273,7 +266,6 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_mono->end = cand_rhs->end;
 	cand_mono->mid = cand_rhs->beg;
 	cand_mono->tgt_word_num = cand_lhs->tgt_word_num + cand_rhs->tgt_word_num;
-	cand_mono->tgt_mid = cand_lhs->tgt_word_num;
 	cand_mono->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
 	cand_mono->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob + mono_reorder_prob;
 	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob;
@@ -299,7 +291,6 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	*cand_swap = *cand_mono;
 	cand_swap->child_lhs = cand_rhs;
 	cand_swap->child_rhs = cand_lhs;
-	cand_swap->tgt_mid = cand_rhs->tgt_word_num;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
 	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
