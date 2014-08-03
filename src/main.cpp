@@ -88,6 +88,11 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 			getline(fin,line);
 			para.PRINT_NBEST = stoi(line);
 		}
+		else if (line == "[DUMP-RULE]")
+		{
+			getline(fin,line);
+			para.DUMP_RULE = stoi(line);
+		}
 		else if (line == "[LOAD-ALIGNMENT]")
 		{
 			getline(fin,line);
@@ -165,22 +170,29 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 	vector<string> input_sen;
 	vector<string> output_sen;
 	vector<vector<Tune_info> > nbest_tune_info_list;
+	vector<vector<string> > applied_rules_list;
 	string line;
 	while(getline(fin,line))
 	{
 		TrimLine(line);
 		input_sen.push_back(line);
 	}
-	output_sen.resize(input_sen.size());
-	nbest_tune_info_list.resize(input_sen.size());
+	int sen_num = input_sen.size();
+	output_sen.resize(sen_num);
+	nbest_tune_info_list.resize(sen_num);
+	applied_rules_list.resize(sen_num);
 #pragma omp parallel for num_threads(para.SEN_THREAD_NUM)
-	for (size_t i=0;i<input_sen.size();i++)
+	for (size_t i=0;i<sen_num;i++)
 	{
 		SentenceTranslator sen_translator(models,para,weight,input_sen.at(i));
 		output_sen.at(i) = sen_translator.translate_sentence();
 		if (para.PRINT_NBEST == true)
 		{
 			nbest_tune_info_list.at(i) = sen_translator.get_tune_info(i);
+		}
+		if (para.DUMP_RULE == true)
+		{
+			applied_rules_list.at(i) = sen_translator.get_applied_rules(i);
 		}
 	}
 	for (const auto &sen : output_sen)
@@ -205,6 +217,24 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 					fnbest<<v<<' ';
 				}
 				fnbest<<"||| "<<tune_info.total_score<<endl;
+			}
+		}
+	}
+	if (para.DUMP_RULE == true)
+	{
+		ofstream frules("applied-rules.txt");
+		if (!frules.is_open())
+		{
+			cerr<<"cannot open applied-rules file!\n";
+			return;
+		}
+		size_t n=0;
+		for (const auto &applied_rules : applied_rules_list)
+		{
+			frules<<++n<<endl;
+			for (const auto &applied_rule : applied_rules)
+			{
+				frules<<applied_rule<<endl;
 			}
 		}
 	}

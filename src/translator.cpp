@@ -166,6 +166,53 @@ vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
 	return nbest_tune_info;
 }
 
+vector<string> SentenceTranslator::get_applied_rules(size_t sen_id)
+{
+	vector<string> applied_rules;
+	Cand *best_cand = candli_matrix.at(0).at(src_sen_len-1).top();
+	dump_rules(applied_rules,best_cand);
+	return applied_rules;
+}
+
+/**************************************************************************************
+ 1. 函数功能: 获取当前候选所使用的规则
+ 2. 入口参数: 当前候选的指针
+ 3. 出口参数: 用于记录规则的applied_rules
+ 4. 算法简介: 通过递归的方式回溯, 如果当前候选没有子候选, 则找到了一条规则, 否则获取两个
+ 			  子候选所使用的规则
+************************************************************************************* */
+void SentenceTranslator::dump_rules(vector<string> &applied_rules, Cand *cand)
+{
+	if (cand->child_lhs == NULL)			//左子候选为空时右子候选也为空
+	{
+		string applied_rule;
+		for (size_t i=cand->beg; i<=cand->end; i++)
+		{
+			applied_rule += src_vocab->get_word(src_wids.at(i))+" ";
+		}
+		applied_rule += "||| ";
+		for (auto tgt_wid : cand->tgt_wids)
+		{
+			applied_rule += tgt_vocab->get_word(tgt_wid)+" ";
+		}
+		TrimLine(applied_rule);
+		applied_rules.push_back(applied_rule);
+	}
+	else
+	{
+		if (cand->child_lhs->beg < cand->child_rhs->beg)		//子候选为顺序合并
+		{
+			dump_rules(applied_rules,cand->child_lhs);
+			dump_rules(applied_rules,cand->child_rhs);
+		}
+		else
+		{
+			dump_rules(applied_rules,cand->child_rhs);
+			dump_rules(applied_rules,cand->child_lhs);
+		}
+	}
+}
+
 string SentenceTranslator::translate_sentence()
 {
 	if (src_sen_len == 0)

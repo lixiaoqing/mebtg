@@ -113,6 +113,7 @@ struct Parameter
 	size_t REORDER_WINDOW;     			//最大调序范围
 	size_t RULE_NUM_LIMIT;		      	//源端相同的情况下最多能加载的规则数
 	bool PRINT_NBEST;
+	bool DUMP_RULE;						//是否输出所使用的规则
 	bool LOAD_ALIGNMENT;				//加载短语表时是否加载短语内部的词对齐
 };
 
