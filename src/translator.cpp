@@ -18,10 +18,10 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	}
 
 	src_sen_len = src_wids.size();
-	candli_matrix.resize(src_sen_len);
+	candbeam_matrix.resize(src_sen_len);
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		candli_matrix.at(beg).resize(src_sen_len-beg);
+		candbeam_matrix.at(beg).resize(src_sen_len-beg);
 	}
 
 	fill_matrix_with_matched_rules();
@@ -29,20 +29,20 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 
 SentenceTranslator::~SentenceTranslator()
 {
-	for (size_t i=0;i<candli_matrix.size();i++)
+	for (size_t i=0;i<candbeam_matrix.size();i++)
 	{
-		for(size_t j=0;j<candli_matrix.at(i).size();j++)
+		for(size_t j=0;j<candbeam_matrix.at(i).size();j++)
 		{
-			for(size_t k=0;k<candli_matrix.at(i).at(j).size();k++)
+			for(size_t k=0;k<candbeam_matrix.at(i).at(j).size();k++)
 			{
-				delete candli_matrix.at(i).at(j).at(k);
+				delete candbeam_matrix.at(i).at(j).at(k);
 			}
 		}
 	}
 }
 
 /**************************************************************************************
- 1. 函数功能: 根据短语表中匹配到的所有规则生成翻译候选, 并加入到candli_matrix中
+ 1. 函数功能: 根据短语表中匹配到的所有规则生成翻译候选, 并加入到candbeam_matrix中
  2. 入口参数: 无
  3. 出口参数: 无
  4. 算法简介: a) 如果某个跨度没匹配到规则
@@ -73,7 +73,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 					cand->score += feature_weight.phrase_num*cand->phrase_num 
 						       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
-					candli_matrix.at(beg).at(span).add(cand);
+					candbeam_matrix.at(beg).at(span).add(cand);
 				}
 				continue;
 			}
@@ -89,7 +89,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 				cand->score += feature_weight.phrase_num*cand->phrase_num 
 					       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
-				candli_matrix.at(beg).at(span).add(cand);
+				candbeam_matrix.at(beg).at(span).add(cand);
 			}
 		}
 	}
@@ -142,25 +142,25 @@ string SentenceTranslator::words_to_str(vector<int> wids, bool drop_unk)
 		return output;
 }
 
-vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
+vector<TuneInfo> SentenceTranslator::get_tune_info(size_t sen_id)
 {
-	vector<Tune_info> nbest_tune_info;
-	Candli &candlist = candli_matrix.at(0).at(src_sen_len-1);
-	for (size_t i=0;i< (candlist.size()<para.NBEST_NUM?candlist.size():para.NBEST_NUM);i++)
+	vector<TuneInfo> nbest_tune_info;
+	CandBeam &candbeam = candbeam_matrix.at(0).at(src_sen_len-1);
+	for (size_t i=0;i< (candbeam.size()<para.NBEST_NUM?candbeam.size():para.NBEST_NUM);i++)
 	{
-		Tune_info tune_info;
+		TuneInfo tune_info;
 		tune_info.sen_id = sen_id;
-		tune_info.translation = words_to_str(candlist.at(i)->tgt_wids,false);
+		tune_info.translation = words_to_str(candbeam.at(i)->tgt_wids,false);
 		for (size_t j=0;j<PROB_NUM;j++)
 		{
-			tune_info.feature_values.push_back(candlist.at(i)->trans_probs.at(j));
+			tune_info.feature_values.push_back(candbeam.at(i)->trans_probs.at(j));
 		}
-		tune_info.feature_values.push_back(candlist.at(i)->lm_prob);
-		tune_info.feature_values.push_back(candlist.at(i)->mono_reorder_prob);
-		tune_info.feature_values.push_back(candlist.at(i)->swap_reorder_prob);
-		tune_info.feature_values.push_back(candlist.at(i)->tgt_word_num);
-		tune_info.feature_values.push_back(candlist.at(i)->phrase_num);
-		tune_info.total_score = candlist.at(i)->score;
+		tune_info.feature_values.push_back(candbeam.at(i)->lm_prob);
+		tune_info.feature_values.push_back(candbeam.at(i)->mono_reorder_prob);
+		tune_info.feature_values.push_back(candbeam.at(i)->swap_reorder_prob);
+		tune_info.feature_values.push_back(candbeam.at(i)->tgt_word_num);
+		tune_info.feature_values.push_back(candbeam.at(i)->phrase_num);
+		tune_info.total_score = candbeam.at(i)->score;
 		nbest_tune_info.push_back(tune_info);
 	}
 	return nbest_tune_info;
@@ -169,7 +169,7 @@ vector<Tune_info> SentenceTranslator::get_tune_info(size_t sen_id)
 vector<string> SentenceTranslator::get_applied_rules(size_t sen_id)
 {
 	vector<string> applied_rules;
-	Cand *best_cand = candli_matrix.at(0).at(src_sen_len-1).top();
+	Cand *best_cand = candbeam_matrix.at(0).at(src_sen_len-1).top();
 	dump_rules(applied_rules,best_cand);
 	return applied_rules;
 }
@@ -219,7 +219,7 @@ string SentenceTranslator::translate_sentence()
 		return "";
 	for(size_t beg=0;beg<src_sen_len;beg++)
 	{
-		candli_matrix.at(beg).at(0).sort();		//对列表中的候选进行排序
+		candbeam_matrix.at(beg).at(0).sort();		//对列表中的候选进行排序
 	}
 	for (size_t span=1;span<src_sen_len;span++)
 	{
@@ -227,10 +227,10 @@ string SentenceTranslator::translate_sentence()
 		for(size_t beg=0;beg<src_sen_len-span;beg++)
 		{
 			generate_kbest_for_span(beg,span);
-			candli_matrix.at(beg).at(span).sort();
+			candbeam_matrix.at(beg).at(span).sort();
 		}
 	}
-	return words_to_str(candli_matrix.at(0).at(src_sen_len-1).top()->tgt_wids,true);
+	return words_to_str(candbeam_matrix.at(0).at(src_sen_len-1).top()->tgt_wids,true);
 }
 
 /**************************************************************************************
@@ -246,14 +246,14 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 	//对于当前跨度的每种分割方式,取出左跨度和右跨度中的最好候选,将合并得到的候选加入candpq_merge
 	for(size_t span_lhs=0;span_lhs<span;span_lhs++)
 	{
-		Cand *best_cand_lhs = candli_matrix.at(beg).at(span_lhs).top();
-		Cand *best_cand_rhs = candli_matrix.at(beg+span_lhs+1).at(span-span_lhs-1).top();
+		Cand *best_cand_lhs = candbeam_matrix.at(beg).at(span_lhs).top();
+		Cand *best_cand_rhs = candbeam_matrix.at(beg+span_lhs+1).at(span-span_lhs-1).top();
 		merge_subcands_and_add_to_pq(best_cand_lhs,best_cand_rhs,1,1,candpq_merge);
 	}
 
 	set<vector<int> > duplicate_set;	//用来记录candpq_merge中的候选是否已经被扩展过
 	duplicate_set.clear();
-	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candli_matrix中,并将该候选的邻居加入candpq_merge中
+	//立方体剪枝,每次从candpq_merge中取出最好的候选加入candbeam_matrix中,并将该候选的邻居加入candpq_merge中
 	int added_cand_num = 0;				//从candpq_merge中添加进当前候选列表中的候选数
 	while(added_cand_num < para.BEAM_SIZE)
 	{
@@ -267,7 +267,7 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			best_cand->lm_prob += increased_lm_prob;
 			best_cand->score += feature_weight.lm*increased_lm_prob;
 		}
-		bool flag = candli_matrix.at(beg).at(span).add(best_cand);
+		bool flag = candbeam_matrix.at(beg).at(span).add(best_cand);
 		
 		vector<int> key = {best_cand->rank_lhs,best_cand->rank_rhs,best_cand->mid};
 		if (duplicate_set.find(key) == duplicate_set.end())
@@ -366,19 +366,19 @@ void SentenceTranslator::add_neighbours_to_pq(Cand* cur_cand, Candpq &candpq_mer
 
 	int rank_lhs = cur_cand->rank_lhs + 1;
 	int rank_rhs = cur_cand->rank_rhs;
-	if(candli_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
+	if(candbeam_matrix.at(beg).at(span_lhs).size() >= rank_lhs)
 	{
-		Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		Cand *cand_lhs = candbeam_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		Cand *cand_rhs = candbeam_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 
 	rank_lhs = cur_cand->rank_lhs;
 	rank_rhs = cur_cand->rank_rhs + 1;
-	if(candli_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
+	if(candbeam_matrix.at(mid).at(span_rhs).size() >= rank_rhs)
 	{
-		Cand *cand_lhs = candli_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
-		Cand *cand_rhs = candli_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
+		Cand *cand_lhs = candbeam_matrix.at(beg).at(span_lhs).at(rank_lhs-1);
+		Cand *cand_rhs = candbeam_matrix.at(mid).at(span_rhs).at(rank_rhs-1);
 		merge_subcands_and_add_to_pq(cand_lhs,cand_rhs,rank_lhs,rank_rhs,candpq_merge);
 	}
 }

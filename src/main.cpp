@@ -169,7 +169,7 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 	}
 	vector<string> input_sen;
 	vector<string> output_sen;
-	vector<vector<Tune_info> > nbest_tune_info_list;
+	vector<vector<TuneInfo> > nbest_tune_info_list;
 	vector<vector<string> > applied_rules_list;
 	string line;
 	while(getline(fin,line))

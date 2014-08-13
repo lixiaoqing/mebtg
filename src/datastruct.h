@@ -67,7 +67,7 @@ struct smaller
 bool larger( const Cand *pl, const Cand *pr );
 
 //将跨度相同的候选组织到列表中
-class Candli
+class CandBeam
 {
 	public:
 		bool add(Cand *cand_ptr);
@@ -84,7 +84,7 @@ class Candli
 
 typedef priority_queue<Cand*, vector<Cand*>, smaller> Candpq;
 
-struct Tune_info
+struct TuneInfo
 {
 	size_t sen_id;
 	string translation;
