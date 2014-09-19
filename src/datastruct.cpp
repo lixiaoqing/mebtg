@@ -16,7 +16,7 @@ bool larger( const Cand *pl, const Cand *pr )
               b) 如果当前候选与优先级队列中的所有候选的目标端边界词不同,
 	         则将当前候选加入列表
  * **********************************************************************/
-bool CandBeam::add(Cand *cand_ptr)
+bool CandBeam::add(Cand *&cand_ptr)
 { 
 	for (auto &e_cand_ptr : data)
 	{
@@ -28,7 +28,7 @@ bool CandBeam::add(Cand *cand_ptr)
 			}
 			if (cand_ptr->score > e_cand_ptr->score)
 			{
-				*e_cand_ptr = *cand_ptr;
+				swap(e_cand_ptr,cand_ptr);
 				return false;
 			}
 		}

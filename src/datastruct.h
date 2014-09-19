@@ -70,7 +70,7 @@ bool larger( const Cand *pl, const Cand *pr );
 class CandBeam
 {
 	public:
-		bool add(Cand *cand_ptr);
+		bool add(Cand *&cand_ptr);
 		Cand* top() { return data.front(); }
 		Cand* at(size_t i) { return data.at(i);}
 		int size() { return data.size();  }
