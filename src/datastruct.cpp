@@ -29,7 +29,8 @@ bool CandBeam::add(Cand *&cand_ptr)
 			if (cand_ptr->score > e_cand_ptr->score)
 			{
 				swap(e_cand_ptr,cand_ptr);
-				return false;
+				recombined_cands.push_back(cand_ptr);
+				return true;
 			}
 		}
 	}
@@ -55,3 +56,14 @@ bool CandBeam::is_bound_same(const Cand *a, const Cand *b)
 	return true;
 }
 
+void CandBeam::free()
+{
+	for (auto cand : data)
+	{
+		delete cand;
+	}
+	for (auto cand : recombined_cands)
+	{
+		delete cand;
+	}
+}

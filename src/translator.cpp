@@ -33,10 +33,7 @@ SentenceTranslator::~SentenceTranslator()
 	{
 		for(size_t j=0;j<candbeam_matrix.at(i).size();j++)
 		{
-			for(size_t k=0;k<candbeam_matrix.at(i).at(j).size();k++)
-			{
-				delete candbeam_matrix.at(i).at(j).at(k);
-			}
+			candbeam_matrix.at(i).at(j).free();
 		}
 	}
 }
@@ -267,7 +264,6 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			best_cand->lm_prob += increased_lm_prob;
 			best_cand->score += feature_weight.lm*increased_lm_prob;
 		}
-		bool flag = candbeam_matrix.at(beg).at(span).add(best_cand);
 		
 		vector<int> key = {best_cand->rank_lhs,best_cand->rank_rhs,best_cand->mid};
 		if (duplicate_set.find(key) == duplicate_set.end())
@@ -275,7 +271,8 @@ void SentenceTranslator::generate_kbest_for_span(const size_t beg,const size_t s
 			add_neighbours_to_pq(best_cand,candpq_merge);
 			duplicate_set.insert(key);
 		}
-		if (flag == false)					//如果被丢弃或者替换掉了原来的候选
+		bool flag = candbeam_matrix.at(beg).at(span).add(best_cand);
+		if (flag == false)					//如果被丢弃
 		{
 			delete best_cand;
 		}

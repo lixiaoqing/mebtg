@@ -75,11 +75,13 @@ class CandBeam
 		Cand* at(size_t i) { return data.at(i);}
 		int size() { return data.size();  }
 		void sort() { std::sort(data.begin(),data.end(),larger); }
+		void free();
 	private:
 		bool is_bound_same(const Cand *a, const Cand *b);
 
 	private:
 		vector<Cand*> data;
+		vector<Cand*> recombined_cands;
 };
 
 typedef priority_queue<Cand*, vector<Cand*>, smaller> Candpq;
