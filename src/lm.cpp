@@ -24,7 +24,7 @@ LanguageModel::LanguageModel(const string &lm_file, Vocab *tgt_vocab)
 	conf.enumerate_vocab = &id_converter;
 	kenlm = new Model(lm_file.c_str(), conf);
 	EOS = convert_to_kenlm_id(tgt_vocab->get_id("</s>"));
-	cout<<"load language model file "<<lm_file<<" over\n";
+	cerr<<"load language model file "<<lm_file<<" over\n";
 };
 
 lm::WordIndex LanguageModel::convert_to_kenlm_id(int wid)

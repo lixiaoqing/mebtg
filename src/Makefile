@@ -2,7 +2,8 @@ CXX=g++
 CXXFLAGS=-std=c++0x -O3 -fopenmp -lz -I. -DKENLM_MAX_ORDER=6
 objs=lm/*.o util/*.o util/double-conversion/*.o
 
-all: translator phrase2bin
+#all: translator phrase2bin
+all: translator
 translator: main.o translator.o lm.o ruletable.o maxent.o vocab.o datastruct.o myutils.o $(objs)
 	$(CXX) -o mebtg main.o translator.o lm.o ruletable.o maxent.o vocab.o myutils.o datastruct.o $(objs) $(CXXFLAGS)
 phrase2bin: phrase2bin.o myutils.o

@@ -58,7 +58,7 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 		tgt_rule.score = 0;
 		if( tgt_rule.probs.size() != weight.trans.size() )
 		{
-			cout<<"number of probability in rule is wrong!"<<endl;
+			cerr<<"number of probability in rule is wrong!"<<endl;
 		}
 		for( size_t i=0; i<weight.trans.size(); i++ )
 		{
@@ -68,7 +68,7 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 		add_rule_to_trie(src_wids,tgt_rule);
 	}
 	fin.close();
-	cout<<"load rule table file "<<rule_table_file<<" over\n";
+	cerr<<"load rule table file "<<rule_table_file<<" over\n";
 }
 
 vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(const vector<int> &src_wids,const size_t pos)

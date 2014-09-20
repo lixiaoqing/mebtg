@@ -12,7 +12,7 @@ void phrase2bin(string phrase_filename,string mode)
 	gzFile gzfp = gzopen(phrase_filename.c_str(),"r");
 	if (!gzfp)
 	{
-		cout<<"fail to open "<<phrase_filename<<endl;
+		cerr<<"fail to open "<<phrase_filename<<endl;
 		return;
 	}
 	ofstream fout;
@@ -22,7 +22,7 @@ void phrase2bin(string phrase_filename,string mode)
 		fout.open("prob.bin-without-alignment",ios::binary);
 	if (!fout.is_open())
 	{
-		cout<<"fail open model file to write!\n";
+		cerr<<"fail open model file to write!\n";
 		return;
 	}
 	char buf[LEN];
@@ -116,7 +116,7 @@ void phrase2bin(string phrase_filename,string mode)
 	ofstream f_ch_vocab("vocab.ch");
 	if (!f_ch_vocab.is_open())
 	{
-		cout<<"fail open ch vocab file to write!\n";
+		cerr<<"fail open ch vocab file to write!\n";
 		return;
 	}
 	for(size_t i=0;i<ch_vocab_vec.size();i++)
@@ -128,7 +128,7 @@ void phrase2bin(string phrase_filename,string mode)
 	ofstream f_en_vocab("vocab.en");
 	if (!f_en_vocab.is_open())
 	{
-		cout<<"fail open en vocab file to write!\n";
+		cerr<<"fail open en vocab file to write!\n";
 		return;
 	}
 	for(size_t i=0;i<en_vocab_vec.size();i++)
@@ -142,7 +142,7 @@ int main(int argc,char* argv[])
 {
     if(argc == 1)
     {
-		cout<<"usage: ./phrase2bin phrase.gz mode\nconvert alignment if mode==1, don't convert if mode==0\n";
+		cerr<<"usage: ./phrase2bin phrase.gz mode\nconvert alignment if mode==1, don't convert if mode==0\n";
 		return 0;
     }
     string phrase_filename(argv[1]);
