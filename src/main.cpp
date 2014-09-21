@@ -157,12 +157,23 @@ void parse_args(int argc, char *argv[],Filenames &fns,Parameter &para, Weight &w
 			string weight_str = argv[++i];
 			vector<string> vs;
 			Split(vs,weight_str);
-			size_t k = 0;
 			for (size_t j=0; j<vs.size(); j++)
 			{
-				if (vs[j].find("trans") != string::npos)
+				if (vs[j].find("transa") != string::npos)
 				{
-					weight.trans[k++] = stod(vs[++j]);
+					weight.trans[0] = stod(vs[++j]);
+				}
+				else if (vs[j].find("transb") != string::npos)
+				{
+					weight.trans[1] = stod(vs[++j]);
+				}
+				else if (vs[j].find("transc") != string::npos)
+				{
+					weight.trans[2] = stod(vs[++j]);
+				}
+				else if (vs[j].find("transd") != string::npos)
+				{
+					weight.trans[3] = stod(vs[++j]);
 				}
 				else if (vs[j].find("lm") != string::npos)
 				{
