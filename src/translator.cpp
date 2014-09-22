@@ -332,17 +332,27 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	if (cand_rhs->end - cand_lhs->beg >= para.REORDER_WINDOW)
 		return;
 	Cand* cand_swap = new Cand;
-	*cand_swap = *cand_mono;
+	cand_swap->beg = cand_lhs->beg;
+	cand_swap->end = cand_rhs->end;
+	cand_swap->mid = cand_rhs->beg;
+	cand_swap->tgt_word_num = cand_lhs->tgt_word_num + cand_rhs->tgt_word_num;
+	cand_swap->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
+	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
+	cand_swap->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
+	cand_swap->rank_lhs = rank_lhs;
+	cand_swap->rank_rhs = rank_rhs;
 	cand_swap->child_lhs = cand_rhs;
 	cand_swap->child_rhs = cand_lhs;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
-	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
-	cand_swap->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
+	for (size_t i=0;i<PROB_NUM;i++)
+	{
+		cand_swap->trans_probs.push_back(cand_lhs->trans_probs.at(i)+cand_rhs->trans_probs.at(i));
+	}
 	increased_lm_prob = lm_model->cal_increased_lm_score(cand_swap);
 	cand_swap->lm_prob = cand_lhs->lm_prob + cand_rhs->lm_prob + increased_lm_prob;
 	cand_swap->score = cand_lhs->score + cand_rhs->score 
-		           + feature_weight.lm*increased_lm_prob + feature_weight.reorder_mono*swap_reorder_prob;
+		           + feature_weight.lm*increased_lm_prob + feature_weight.reorder_swap*swap_reorder_prob;
 	candpq_merge.push(cand_swap);
 }
 
