@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "datastruct.h"
+#include "cand.h"
 #include "vocab.h"
 #include "ruletable.h"
 #include "lm.h"
