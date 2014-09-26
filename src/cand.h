@@ -21,6 +21,7 @@ struct Cand
 	double lm_prob;
 	double mono_reorder_prob;
 	double swap_reorder_prob;
+	double context_based_trans_prob;
 
 	//合并信息,记录当前候选是由两个子候选合并得来时的相关信息
 	int mid;					//记录两个子候选在源语言中的交界位置
@@ -46,6 +47,7 @@ struct Cand
 		lm_prob = 0.0;
 		mono_reorder_prob = 0.0;
 		swap_reorder_prob = 0.0;
+		context_based_trans_prob = 0.0;
 
 		mid = -1;
 		rank_lhs = 0;

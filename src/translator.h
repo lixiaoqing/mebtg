@@ -12,6 +12,7 @@ struct Models
 	Vocab *tgt_vocab;
 	RuleTable *ruletable;
 	MaxentModel *reorder_model;
+	vector<MaxentModel*> *wsd_model_vec;
 	LanguageModel *lm_model;
 };
 
@@ -26,6 +27,7 @@ class SentenceTranslator
 	private:
 		void fill_matrix_with_matched_rules();
 		pair<double,double> cal_reorder_score(const Cand *cand_lhs,const Cand *cand_rhs);
+		double cal_context_based_trans_prob(int pos, string &translation);
 		void generate_kbest_for_span(const size_t beg,const size_t span);
 		void merge_subcands_and_add_to_pq(Cand *cand_lhs, Cand *cand_rhs,int rank_lhs,int rank_rhs,Candpq &new_cands_by_mergence);
 		void add_neighbours_to_pq(Cand *cur_cand, Candpq &new_cands_by_mergence);
@@ -37,6 +39,7 @@ class SentenceTranslator
 		Vocab *tgt_vocab;
 		RuleTable *ruletable;
 		MaxentModel *reorder_model;
+		vector<MaxentModel*> *wsd_model_vec;
 		LanguageModel *lm_model;
 		Parameter para;
 		Weight feature_weight;
@@ -44,5 +47,6 @@ class SentenceTranslator
 		vector<vector<CandBeam> > candbeam_matrix;		//存储解码过程中所有跨度对应的候选列表, 
 													    //candbeam_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
 		vector<int> src_wids;
-		size_t src_sen_len;
+		vector<string> src_words;
+		int src_sen_len;
 };

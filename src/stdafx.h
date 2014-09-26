@@ -53,6 +53,7 @@ struct Filenames
 	string rule_table_file;
 	string lm_file;
 	string reorder_model_file;
+	string wsd_model_file;
 };
 
 struct Parameter
@@ -74,6 +75,7 @@ struct Weight
 	double lm;
 	double reorder_mono;
 	double reorder_swap;
+	double sense;
 	double len;							//译文的单词数
 	double phrase_num;					//源端被切成的短语数
 };

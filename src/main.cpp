@@ -53,6 +53,11 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 			getline(fin,line);
 			fns.reorder_model_file = line;
 		}
+		else if (line == "[wsd-model-file]")
+		{
+			getline(fin,line);
+			fns.wsd_model_file = line;
+		}
 		else if (line == "[BEAM-SIZE]")
 		{
 			getline(fin,line);
@@ -129,6 +134,10 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 				{
 					ss>>weight.reorder_swap;
 				}
+				else if(feature == "sense")
+				{
+					ss>>weight.sense;
+				}
 				else if(feature == "phrase-num")
 				{
 					ss>>weight.phrase_num;
@@ -151,6 +160,48 @@ void parse_args(int argc, char *argv[],Filenames &fns,Parameter &para, Weight &w
 		}
 
 	}
+}
+
+vector<MaxentModel*>* parse_wsd_model_file(const string &wsd_model_file, int vocab_size)
+{
+	vector<MaxentModel*> *wsd_model_vec = new vector<MaxentModel*>(vocab_size,NULL);
+	ifstream fin;
+	fin.open(wsd_model_file.c_str());
+	if (!fin.is_open())
+	{
+		cerr<<"fail to open wsd model file\n";
+		return NULL;
+	}
+	string line;
+	vector<string> id_len_pairs;
+	while ( getline(fin,line) )
+	{
+		TrimLine(line);
+		if (line.size() == 0)
+			break;
+		id_len_pairs.push_back(line);
+	}
+	for (auto &id_len_pair : id_len_pairs)
+	{
+		vector<string> vs;
+		Split(vs,id_len_pair);
+		int word_id = stoi(vs[0]);
+		int line_num = stoi(vs[1]);
+		ofstream fout("tmp");
+		if (!fout.is_open())
+		{
+			cerr<<"cannot open tmp file to write wsd model!\n";
+			return NULL;
+		}
+		for (size_t i=0; i<line_num; i++)
+		{
+			getline(fin,line);
+			fout<<line<<endl;
+		}
+		fout.close();
+		wsd_model_vec->at(word_id) = new MaxentModel("tmp");
+	}
+	return wsd_model_vec;
 }
 
 void translate_file(const Models &models, const Parameter &para, const Weight &weight, const string &input_file, const string &output_file)
@@ -255,12 +306,13 @@ int main( int argc, char *argv[])
 	Vocab *tgt_vocab = new Vocab(fns.tgt_vocab_file);
 	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.rule_table_file);
 	MaxentModel *reorder_model = new MaxentModel(fns.reorder_model_file);
+	vector<MaxentModel*> *wsd_model_vec = parse_wsd_model_file( fns.wsd_model_file, src_vocab->size() );
 	LanguageModel *lm_model = new LanguageModel(fns.lm_file,tgt_vocab);
 
 	b = clock();
 	cout<<"loading time: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
 
-	Models models = {src_vocab,tgt_vocab,ruletable,reorder_model,lm_model};
+	Models models = {src_vocab,tgt_vocab,ruletable,reorder_model,wsd_model_vec,lm_model};
 	translate_file(models,para,weight,fns.input_file,fns.output_file);
 	b = clock();
 	cout<<"time cost: "<<double(b-a)/CLOCKS_PER_SEC<<endl;

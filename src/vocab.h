@@ -9,6 +9,7 @@ class Vocab
 		Vocab(const string &vocab_file) {load_vocab(vocab_file);};
 		string get_word(int id){return word_list.at(id);};
 		int get_id(const string &word);
+		int size() {return word_list.size();};
 	private:
 		void load_vocab(const string &vocab_file);
 	private:

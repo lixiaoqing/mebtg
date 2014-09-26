@@ -6,6 +6,7 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	tgt_vocab = i_models.tgt_vocab;
 	ruletable = i_models.ruletable;
 	reorder_model = i_models.reorder_model;
+	wsd_model_vec = i_models.wsd_model_vec;
 	lm_model = i_models.lm_model;
 	para = i_para;
 	feature_weight = i_weight;
@@ -15,6 +16,7 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	while(ss>>word)
 	{
 		src_wids.push_back(src_vocab->get_id(word));
+		src_words.push_back(word);
 	}
 
 	src_sen_len = src_wids.size();
@@ -74,7 +76,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				}
 				continue;
 			}
-			for (const auto &tgt_rule : *matched_rules_for_prefixes.at(span))
+			for (const auto &tgt_rule : *(matched_rules_for_prefixes.at(span)) )
 			{
 				Cand* cand = new Cand;
 				cand->beg = beg;
@@ -84,8 +86,26 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				cand->trans_probs = tgt_rule.probs;
 				cand->score = tgt_rule.score;
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
-				cand->score += feature_weight.phrase_num*cand->phrase_num 
-					       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
+				for (size_t i=beg; i<=cand->end; i++)
+				{
+					vector<int> tgt_pos_vec = tgt_rule.s2t_pos_map.at(i-beg);
+					string translation;
+					if (tgt_pos_vec.size() == 0)
+					{
+						translation = "NULL";
+					}
+					else
+					{
+						translation = tgt_vocab->get_word( tgt_rule.wids.at(0) );
+						for (size_t j=1; j<tgt_pos_vec.size(); j++)
+						{
+							translation += "_" + tgt_vocab->get_word( tgt_rule.wids.at(j) );
+						}
+					}
+					cand->context_based_trans_prob += cal_context_based_trans_prob(i,translation);
+				}
+				cand->score += feature_weight.lm*cand->lm_prob + feature_weight.sense*cand->context_based_trans_prob
+					           + feature_weight.phrase_num*cand->phrase_num + feature_weight.len*cand->tgt_word_num;
 				candbeam_matrix.at(beg).at(span).add(cand);
 			}
 		}
@@ -124,6 +144,22 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 	return make_pair(reorder_prob_vec[reorder_model->get_tagid("straight")],reorder_prob_vec[reorder_model->get_tagid("inverted")]);
 }
 
+double SentenceTranslator::cal_context_based_trans_prob(int pos, string &translation)
+{
+	int wid = src_wids.at(pos);
+	if (wsd_model_vec->at(wid) == NULL)
+		return -99;
+	int left_bound = max(pos-10,0);
+	int right_bound = min(pos+10,src_sen_len-1);
+	vector <string> context;
+	for (int i=left_bound; i<=right_bound; i++)
+	{
+		string ralative_pos = to_string(i-pos);
+		context.push_back(ralative_pos+"/"+src_words.at(i));
+	}
+	return wsd_model_vec->at(wid)->eval(context,translation);
+}
+
 string SentenceTranslator::words_to_str(vector<int> wids, bool drop_unk)
 {
 		string output = "";
@@ -155,6 +191,7 @@ vector<TuneInfo> SentenceTranslator::get_tune_info(size_t sen_id)
 		tune_info.feature_values.push_back(candbeam.at(i)->lm_prob);
 		tune_info.feature_values.push_back(candbeam.at(i)->mono_reorder_prob);
 		tune_info.feature_values.push_back(candbeam.at(i)->swap_reorder_prob);
+		tune_info.feature_values.push_back(candbeam.at(i)->context_based_trans_prob);
 		tune_info.feature_values.push_back(candbeam.at(i)->tgt_word_num);
 		tune_info.feature_values.push_back(candbeam.at(i)->phrase_num);
 		tune_info.total_score = candbeam.at(i)->score;
@@ -313,6 +350,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_mono->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
 	cand_mono->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob + mono_reorder_prob;
 	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob;
+	cand_mono->context_based_trans_prob = cand_lhs->context_based_trans_prob + cand_rhs->context_based_trans_prob;
 	cand_mono->rank_lhs = rank_lhs;
 	cand_mono->rank_rhs = rank_rhs;
 	cand_mono->child_lhs = cand_lhs;
@@ -339,6 +377,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_swap->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
 	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
 	cand_swap->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
+	cand_swap->context_based_trans_prob = cand_lhs->context_based_trans_prob + cand_rhs->context_based_trans_prob;
 	cand_swap->rank_lhs = rank_lhs;
 	cand_swap->rank_rhs = rank_rhs;
 	cand_swap->child_lhs = cand_rhs;
