@@ -28,7 +28,7 @@ void MaxentModel::load(const string &modelfile)
 		return;
 	}
 	gzclose(f);
-	cout<<"load reorder model file "<<modelfile<<" over\n";
+	//cout<<"load reorder model file "<<modelfile<<" over\n";
 }
 
 void MaxentModel::load_bin(const string &modelfile)

@@ -148,7 +148,7 @@ double SentenceTranslator::cal_context_based_trans_prob(int pos, string &transla
 {
 	int wid = src_wids.at(pos);
 	if (wsd_model_vec->at(wid) == NULL)
-		return -99;
+		return LogP_PseudoZero;
 	int left_bound = max(pos-10,0);
 	int right_bound = min(pos+10,src_sen_len-1);
 	vector <string> context;

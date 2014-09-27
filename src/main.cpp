@@ -177,8 +177,9 @@ vector<MaxentModel*>* parse_wsd_model_file(const string &wsd_model_catalog_file,
 	{
 		TrimLine(line);
 		int wid = stoi(line);
-		wsd_model_vec->at(wid) = new MaxentModel(line);
+		wsd_model_vec->at(wid) = new MaxentModel("data/"+line);
 	}
+	cout<<"load wsd models over\n";
 	return wsd_model_vec;
 }
 
@@ -284,6 +285,7 @@ int main( int argc, char *argv[])
 	Vocab *tgt_vocab = new Vocab(fns.tgt_vocab_file);
 	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.rule_table_file);
 	MaxentModel *reorder_model = new MaxentModel(fns.reorder_model_file);
+	cout<<"load reorder model over\n";
 	vector<MaxentModel*> *wsd_model_vec = parse_wsd_model_file( fns.wsd_model_file, src_vocab->size() );
 	LanguageModel *lm_model = new LanguageModel(fns.lm_file,tgt_vocab);
 
