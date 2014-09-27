@@ -162,44 +162,22 @@ void parse_args(int argc, char *argv[],Filenames &fns,Parameter &para, Weight &w
 	}
 }
 
-vector<MaxentModel*>* parse_wsd_model_file(const string &wsd_model_file, int vocab_size)
+vector<MaxentModel*>* parse_wsd_model_file(const string &wsd_model_catalog_file, int vocab_size)
 {
 	vector<MaxentModel*> *wsd_model_vec = new vector<MaxentModel*>(vocab_size,NULL);
 	ifstream fin;
-	fin.open(wsd_model_file.c_str());
+	fin.open(wsd_model_catalog_file.c_str());
 	if (!fin.is_open())
 	{
-		cerr<<"fail to open wsd model file\n";
+		cerr<<"fail to open wsd model catalog file\n";
 		return NULL;
 	}
 	string line;
-	vector<string> id_len_pairs;
 	while ( getline(fin,line) )
 	{
 		TrimLine(line);
-		if (line.size() == 0)
-			break;
-		id_len_pairs.push_back(line);
-	}
-	for (auto &id_len_pair : id_len_pairs)
-	{
-		vector<string> vs;
-		Split(vs,id_len_pair);
-		int word_id = stoi(vs[0]);
-		int line_num = stoi(vs[1]);
-		ofstream fout("tmp");
-		if (!fout.is_open())
-		{
-			cerr<<"cannot open tmp file to write wsd model!\n";
-			return NULL;
-		}
-		for (size_t i=0; i<line_num; i++)
-		{
-			getline(fin,line);
-			fout<<line<<endl;
-		}
-		fout.close();
-		wsd_model_vec->at(word_id) = new MaxentModel("tmp");
+		int wid = stoi(line);
+		wsd_model_vec->at(wid) = new MaxentModel(line);
 	}
 	return wsd_model_vec;
 }
