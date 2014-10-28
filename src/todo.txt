@@ -1,0 +1,3 @@
+1. load wsd models  checked
+2. update find_matched_rules_for_prefixes with considering all sense combinations
+3. calculate wsd score for matched rules

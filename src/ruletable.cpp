@@ -71,13 +71,13 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 	cout<<"load rule table file "<<rule_table_file<<" over\n";
 }
 
-vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(const vector<int> &src_wids,const size_t pos)
+vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos)
 {
 	vector<vector<TgtRule>* > matched_rules_for_prefixes;
 	RuleTrieNode* current = root;
-	for (size_t i=pos;i<src_wids.size() && i-pos<RULE_LEN_MAX;i++)
+	for (size_t i=pos;i<src_sense_id_matrix.size() && i-pos<RULE_LEN_MAX;i++)
 	{
-		auto it = current->id2subtrie_map.find(src_wids.at(i));
+		auto it = current->id2subtrie_map.find(src_sense_id_matrix.at(i).at(0));
 		if (it != current->id2subtrie_map.end())
 		{
 			current = it->second;

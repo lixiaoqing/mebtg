@@ -12,6 +12,8 @@ struct Models
 	Vocab *tgt_vocab;
 	RuleTable *ruletable;
 	MaxentModel *reorder_model;
+	map<string,MaxentModel*> *lemma2wsd_model;
+	map<string,vector<string> > *lemma2synsets;
 	LanguageModel *lm_model;
 };
 
@@ -37,12 +39,15 @@ class SentenceTranslator
 		Vocab *tgt_vocab;
 		RuleTable *ruletable;
 		MaxentModel *reorder_model;
+		map<string,MaxentModel*> *lemma2wsd_model;
+		map<string,vector<string> > *lemma2synsets;
 		LanguageModel *lm_model;
 		Parameter para;
 		Weight feature_weight;
 
 		vector<vector<CandBeam> > candbeam_matrix;		//存储解码过程中所有跨度对应的候选列表, 
 													    //candbeam_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
-		vector<int> src_wids;
+		vector<string> src_words;
+		vector<vector<int> > src_sense_id_matrix;       //将输入句子每个词对应的所有词义依次排列成一个矩阵
 		size_t src_sen_len;
 };

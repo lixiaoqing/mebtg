@@ -53,6 +53,7 @@ struct Filenames
 	string rule_table_file;
 	string lm_file;
 	string reorder_model_file;
+	string wsd_model_file;
 };
 
 struct Parameter

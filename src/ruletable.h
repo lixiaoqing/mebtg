@@ -28,7 +28,7 @@ class RuleTable
 			root=new RuleTrieNode;
 			load_rule_table(rule_table_file);
 		};
-		vector<vector<TgtRule>* > find_matched_rules_for_prefixes(const vector<int> &src_wids,const size_t pos);
+		vector<vector<TgtRule>* > find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos);
 
 	private:
 		void load_rule_table(const string &rule_table_file);

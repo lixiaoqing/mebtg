@@ -6,6 +6,8 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	tgt_vocab = i_models.tgt_vocab;
 	ruletable = i_models.ruletable;
 	reorder_model = i_models.reorder_model;
+	lemma2wsd_model = i_models.lemma2wsd_model;
+	lemma2synsets = i_models.lemma2synsets;
 	lm_model = i_models.lm_model;
 	para = i_para;
 	feature_weight = i_weight;
@@ -14,14 +16,28 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	string word;
 	while(ss>>word)
 	{
-		src_wids.push_back(src_vocab->get_id(word));
+		src_words.push_back(word);
+		auto it = lemma2synsets->find(word);
+		if (it != lemma2synsets->end() )
+		{
+			vector<int> sense_ids;
+			for (const auto &synset : it->second)
+			{
+				sense_ids.push_back( src_vocab->get_id(synset) );
+			}
+			src_sense_id_matrix.push_back(sense_ids);
+		}
+		else
+		{
+			src_sense_id_matrix.push_back({src_vocab->get_id(word)});
+		}
 	}
 
-	src_sen_len = src_wids.size();
+	src_sen_len = src_words.size();
 	candbeam_matrix.resize(src_sen_len);
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		candbeam_matrix.at(beg).resize(src_sen_len-beg);
+		candbeam_matrix.at(beg).resize(src_sen_len - beg);
 	}
 
 	fill_matrix_with_matched_rules();
@@ -51,7 +67,7 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 {
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		vector<vector<TgtRule>* > matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_wids,beg);
+		vector<vector<TgtRule>* > matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
 		for (size_t span=0;span<matched_rules_for_prefixes.size();span++)	//span=0对应跨度包含1个词的情况
 		{
 			if (matched_rules_for_prefixes.at(span) == NULL)
@@ -111,10 +127,10 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 	int tgt_wid_end_rhs = cand_rhs->tgt_wids.at(cand_rhs->tgt_wids.size()-1);
 	vector<string> feature_vec;
 	feature_vec.resize(8);
-	feature_vec.at(0) = "c11=" + src_vocab->get_word(src_wids.at(src_pos_beg_lhs));
-	feature_vec.at(1) = "c12=" + src_vocab->get_word(src_wids.at(src_pos_end_lhs));
-	feature_vec.at(2) = "c21=" + src_vocab->get_word(src_wids.at(src_pos_beg_rhs));
-	feature_vec.at(3) = "c22=" + src_vocab->get_word(src_wids.at(src_pos_end_rhs));
+	feature_vec.at(0) = "c11=" + src_words.at(src_pos_beg_lhs);
+	feature_vec.at(1) = "c12=" + src_words.at(src_pos_end_lhs);
+	feature_vec.at(2) = "c21=" + src_words.at(src_pos_beg_rhs);
+	feature_vec.at(3) = "c22=" + src_words.at(src_pos_end_rhs);
 	feature_vec.at(4) = "e11=" + tgt_vocab->get_word(tgt_wid_beg_lhs);
 	feature_vec.at(5) = "e12=" + tgt_vocab->get_word(tgt_wid_end_lhs);
 	feature_vec.at(6) = "e21=" + tgt_vocab->get_word(tgt_wid_beg_rhs);
@@ -185,7 +201,7 @@ void SentenceTranslator::dump_rules(vector<string> &applied_rules, Cand *cand)
 		string applied_rule;
 		for (size_t i=cand->beg; i<=cand->end; i++)
 		{
-			applied_rule += src_vocab->get_word(src_wids.at(i))+" ";
+			applied_rule += src_words.at(i)+" ";
 		}
 		applied_rule += "||| ";
 		for (auto tgt_wid : cand->tgt_wids)
