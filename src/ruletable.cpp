@@ -78,15 +78,18 @@ void RuleTable::load_rule_table(const string &rule_table_file)
  4. 算法简介: 1) 从前往后生成所有能够匹配的词义组合
               2) 取出每个匹配的词义组合对应的翻译规则
 ************************************************************************************* */
-vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos)
+vector<vector<pair<TgtRule*,vector<int> > > > RuleTable::find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos)
 {
-	vector<vector<TgtRule*> > matched_rules_for_prefixes;
 	vector<vector<RuleTrieNode*> > matched_trienodes_for_prefixes;                                //记录每个前缀匹配到的所有Trie节点
+	vector<vector<vector<int> > > matched_prefixes;                                               //记录匹配到的词义序列, 与上述Trie节点一一对应
 	matched_trienodes_for_prefixes.push_back({root});
+	matched_prefixes.push_back({});
 	for (size_t i=pos;i<src_sense_id_matrix.size() && i-pos<RULE_LEN_MAX;i++)
 	{
 		auto &pre_trienodes = matched_trienodes_for_prefixes.at(i-pos);
+		auto &pre_prefixes = matched_prefixes.at(i-pos);
 		vector<RuleTrieNode*> cur_trienodes;
+		vector<vector<int> > cur_prefixes;
 		auto &cur_sense_id_vec = src_sense_id_matrix.at(i);
 		for (size_t j=0; j<pre_trienodes.size(); j++)                                             //遍历前一层匹配上的Trie节点
 		{	
@@ -97,6 +100,9 @@ vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vecto
 				if ( it != subtrie_map.end() )
 				{
 					cur_trienodes.push_back(it->second);
+					auto prefix = pre_prefixes.at(j);
+					prefix.push_back( cur_sense_id_vec.at(k) );
+					cur_prefixes.push_back(prefix);
 				}
 				else
 					continue;
@@ -105,20 +111,23 @@ vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vecto
 		if ( !cur_trienodes.empty() )
 		{
 			matched_trienodes_for_prefixes.push_back(cur_trienodes);
+			matched_prefixes.push_back(cur_prefixes);
 		}
 		else
 			break;
 	}
 
+	vector<vector<pair<TgtRule*,vector<int> > > > matched_rules_for_prefixes;
 	for (size_t i=1; i<matched_trienodes_for_prefixes.size(); i++)                                //跳过i=0(root节点)
 	{
 		auto &trienodes_for_cur_span = matched_trienodes_for_prefixes.at(i);
-		vector<TgtRule*> rules_for_cur_span;
+		auto &prefixes_for_cur_span = matched_prefixes.at(i);
+		vector<pair<TgtRule*,vector<int> > > rules_for_cur_span;
 		for (size_t j=0; j<trienodes_for_cur_span.size(); j++)                                    //收集当前span所有匹配上的Trie节点包含的规则
 		{
 			for (size_t k=0; k<trienodes_for_cur_span.at(j)->tgt_rules.size(); k++)
 			{
-				rules_for_cur_span.push_back( &trienodes_for_cur_span.at(j)->tgt_rules.at(k) );
+				rules_for_cur_span.push_back( make_pair(&trienodes_for_cur_span.at(j)->tgt_rules.at(k),prefixes_for_cur_span.at(j) ) );
 			}
 		}
 		if ( !rules_for_cur_span.empty() )
@@ -127,7 +136,10 @@ vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vecto
 		}
 		else
 		{
-			matched_rules_for_prefixes.push_back({NULL});
+			pair<TgtRule*,vector<int> > tmp;
+			tmp.first = NULL;
+			tmp.second = {};
+			matched_rules_for_prefixes.push_back({tmp});
 		}
 	}
 	return matched_rules_for_prefixes;

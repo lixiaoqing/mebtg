@@ -40,6 +40,7 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 		candbeam_matrix.at(beg).resize(src_sen_len - beg);
 	}
 
+	cal_sense_ana_score();
 	fill_matrix_with_matched_rules();
 }
 
@@ -50,6 +51,48 @@ SentenceTranslator::~SentenceTranslator()
 		for(size_t j=0;j<candbeam_matrix.at(i).size();j++)
 		{
 			candbeam_matrix.at(i).at(j).free();
+		}
+	}
+}
+
+void SentenceTranslator::cal_sense_ana_score()
+{
+	sense_ana_prob_map_vec.resize(src_sen_len);
+	vector<string> null_words = {"null","null","null"};
+	vector<string> src_words_ext(null_words.begin(),null_words.end());
+	src_words_ext.insert(src_words_ext.end(),src_words.begin(),src_words.end());
+	src_words_ext.insert(src_words_ext.end(),null_words.begin(),null_words.end());
+	for (size_t i=0; i<src_sen_len; i++)
+	{
+		auto it = lemma2wsd_model->find(src_words.at(i));
+		if ( it != lemma2wsd_model->end() )
+		{
+			auto &wsd_model = it->second;
+			size_t pos = i+3;
+			vector<string> features;
+			features.push_back("0/"+src_words_ext.at(pos-2) );
+			features.push_back("1/"+src_words_ext.at(pos-1) );
+			features.push_back("2/"+src_words_ext.at(pos+1) );
+			features.push_back("3/"+src_words_ext.at(pos+2) );
+			features.push_back("4/"+src_words_ext.at(pos-2)+"/"+src_words_ext.at(pos-1) );
+			features.push_back("5/"+src_words_ext.at(pos-1)+"/"+src_words_ext.at(pos+1) );
+			features.push_back("6/"+src_words_ext.at(pos+1)+"/"+src_words_ext.at(pos+2) );
+			features.push_back("7/"+src_words_ext.at(pos-3)+"/"+src_words_ext.at(pos-1) );
+			features.push_back("8/"+src_words_ext.at(pos-2)+"/"+src_words_ext.at(pos+1) );
+			features.push_back("9/"+src_words_ext.at(pos-1)+"/"+src_words_ext.at(pos+2) );
+			features.push_back("10/"+src_words_ext.at(pos+1)+"/"+src_words_ext.at(pos+3) );
+			features.insert(features.end(),src_words.begin(),src_words.end() );
+			vector<double> sense_ana_prob_vec;
+			wsd_model->eval_all(sense_ana_prob_vec,features);
+			for (size_t j=0; j<src_sense_id_matrix.at(i).size(); j++)
+			{
+				string sense = src_vocab->get_word(src_sense_id_matrix.at(i).at(j));
+				sense_ana_prob_map_vec.at(i).insert(make_pair(sense,sense_ana_prob_vec[wsd_model->get_tagid(sense)]) );
+			}
+		}
+		else
+		{
+			sense_ana_prob_map_vec.at(i).insert(make_pair(src_words.at(i),0) );
 		}
 	}
 }
@@ -67,10 +110,10 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 {
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		vector<vector<TgtRule*> > matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
+		auto matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
 		for (size_t span=0;span<matched_rules_for_prefixes.size();span++)	//span=0对应跨度包含1个词的情况
 		{
-			if (matched_rules_for_prefixes.at(span).at(0) == NULL)
+			if (matched_rules_for_prefixes.at(span).at(0).first == NULL)
 			{
 				if (span == 0)
 				{
@@ -85,23 +128,28 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					}
 					cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 					cand->score += feature_weight.phrase_num*cand->phrase_num 
-						       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
+						           + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
 					candbeam_matrix.at(beg).at(span).add(cand);
 				}
 				continue;
 			}
-			for (const auto &tgt_rule : matched_rules_for_prefixes.at(span))
+			for (const auto &rule : matched_rules_for_prefixes.at(span))
 			{
 				Cand* cand = new Cand;
 				cand->beg = beg;
 				cand->end = beg+span;
-				cand->tgt_word_num = tgt_rule->word_num;
-				cand->tgt_wids = tgt_rule->wids;
-				cand->trans_probs = tgt_rule->probs;
-				cand->score = tgt_rule->score;
+				cand->tgt_word_num = rule.first->word_num;
+				cand->tgt_wids = rule.first->wids;
+				cand->trans_probs = rule.first->probs;
+				cand->score = rule.first->score;
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
-				cand->score += feature_weight.phrase_num*cand->phrase_num 
-					       + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
+				for (size_t i=0; i<=span; i++)
+				{
+					auto &sense_id = rule.second.at(i);
+					cand->sense_ana_prob += sense_ana_prob_map_vec.at(beg+i)[src_vocab->get_word(sense_id)];
+				}
+				cand->score += feature_weight.phrase_num*cand->phrase_num + feature_weight.sense*cand->sense_ana_prob
+					           + feature_weight.len*cand->tgt_word_num + feature_weight.lm*cand->lm_prob;
 				candbeam_matrix.at(beg).at(span).add(cand);
 			}
 		}

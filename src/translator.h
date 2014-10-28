@@ -28,6 +28,7 @@ class SentenceTranslator
 	private:
 		void fill_matrix_with_matched_rules();
 		pair<double,double> cal_reorder_score(const Cand *cand_lhs,const Cand *cand_rhs);
+		void cal_sense_ana_score();
 		void generate_kbest_for_span(const size_t beg,const size_t span);
 		void merge_subcands_and_add_to_pq(Cand *cand_lhs, Cand *cand_rhs,int rank_lhs,int rank_rhs,Candpq &new_cands_by_mergence);
 		void add_neighbours_to_pq(Cand *cur_cand, Candpq &new_cands_by_mergence);
@@ -45,9 +46,10 @@ class SentenceTranslator
 		Parameter para;
 		Weight feature_weight;
 
-		vector<vector<CandBeam> > candbeam_matrix;		//存储解码过程中所有跨度对应的候选列表, 
-													    //candbeam_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
+		vector<vector<CandBeam> > candbeam_matrix;		      //存储解码过程中所有跨度对应的候选列表, 
+													          //candbeam_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
 		vector<string> src_words;
-		vector<vector<int> > src_sense_id_matrix;       //将输入句子每个词对应的所有词义依次排列成一个矩阵
+		vector<vector<int> > src_sense_id_matrix;             //将源语言句子每个词对应的所有词义依次排列成一个矩阵
+		vector<map<string,double> > sense_ana_prob_map_vec;   //存储源语言每个词的词义分析概率
 		size_t src_sen_len;
 };

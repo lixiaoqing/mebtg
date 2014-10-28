@@ -18,6 +18,7 @@ struct Cand
 	//打分信息
 	double score;				//当前候选的总得分
 	vector<double> trans_probs;	//翻译概率
+	double sense_ana_prob;      //词义分析概率
 	double lm_prob;
 	double mono_reorder_prob;
 	double swap_reorder_prob;
@@ -43,6 +44,7 @@ struct Cand
 
 		score = 0.0;
 		trans_probs.clear();
+		sense_ana_prob = 0.0;
 		lm_prob = 0.0;
 		mono_reorder_prob = 0.0;
 		swap_reorder_prob = 0.0;

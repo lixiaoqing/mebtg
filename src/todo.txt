@@ -1,3 +1,5 @@
 1. load wsd models  checked
 2. update find_matched_rules_for_prefixes with considering all sense combinations  checked
-3. calculate wsd score for matched rules
+3. calculate wsd score for matched rules   checked
+TODO
+check for safty when cal wsd for OOV

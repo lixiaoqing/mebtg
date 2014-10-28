@@ -126,6 +126,10 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 				{
 					ss>>weight.lm;
 				}
+				else if(feature == "sense")
+				{
+					ss>>weight.sense;
+				}
 				else if(feature == "reorder-mono")
 				{
 					ss>>weight.reorder_mono;
