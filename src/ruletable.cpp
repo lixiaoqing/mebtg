@@ -71,29 +71,63 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 	cout<<"load rule table file "<<rule_table_file<<" over\n";
 }
 
-vector<vector<TgtRule>* > RuleTable::find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos)
+/**************************************************************************************
+ 1. 函数功能: 为以pos为起始位置的所有前缀寻找匹配的翻译规则
+ 2. 入口参数: 源语言句子的词义矩阵; 起始位置
+ 3. 出口参数: 每个span匹配到的所有规则
+ 4. 算法简介: 1) 从前往后生成所有能够匹配的词义组合
+              2) 取出每个匹配的词义组合对应的翻译规则
+************************************************************************************* */
+vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos)
 {
-	vector<vector<TgtRule>* > matched_rules_for_prefixes;
-	RuleTrieNode* current = root;
+	vector<vector<TgtRule*> > matched_rules_for_prefixes;
+	vector<vector<RuleTrieNode*> > matched_trienodes_for_prefixes;                                //记录每个前缀匹配到的所有Trie节点
+	matched_trienodes_for_prefixes.push_back({root});
 	for (size_t i=pos;i<src_sense_id_matrix.size() && i-pos<RULE_LEN_MAX;i++)
 	{
-		auto it = current->id2subtrie_map.find(src_sense_id_matrix.at(i).at(0));
-		if (it != current->id2subtrie_map.end())
+		auto &pre_trienodes = matched_trienodes_for_prefixes.at(i-pos);
+		vector<RuleTrieNode*> cur_trienodes;
+		auto &cur_sense_id_vec = src_sense_id_matrix.at(i);
+		for (size_t j=0; j<pre_trienodes.size(); j++)                                             //遍历前一层匹配上的Trie节点
+		{	
+			for (size_t k=0; k<cur_sense_id_vec.size(); k++)                                      //遍历当前词的所有词义
+			{
+				auto &subtrie_map = pre_trienodes.at(j)->id2subtrie_map; 
+				auto it = subtrie_map.find( cur_sense_id_vec.at(k) );
+				if ( it != subtrie_map.end() )
+				{
+					cur_trienodes.push_back(it->second);
+				}
+				else
+					continue;
+			}
+		}
+		if ( !cur_trienodes.empty() )
 		{
-			current = it->second;
-			if (current->tgt_rules.size() == 0)
+			matched_trienodes_for_prefixes.push_back(cur_trienodes);
+		}
+		else
+			break;
+	}
+
+	for (size_t i=1; i<matched_trienodes_for_prefixes.size(); i++)                                //跳过i=0(root节点)
+	{
+		auto &trienodes_for_cur_span = matched_trienodes_for_prefixes.at(i);
+		vector<TgtRule*> rules_for_cur_span;
+		for (size_t j=0; j<trienodes_for_cur_span.size(); j++)                                    //收集当前span所有匹配上的Trie节点包含的规则
+		{
+			for (size_t k=0; k<trienodes_for_cur_span.at(j)->tgt_rules.size(); k++)
 			{
-				matched_rules_for_prefixes.push_back(NULL);
+				rules_for_cur_span.push_back( &trienodes_for_cur_span.at(j)->tgt_rules.at(k) );
 			}
-			else
-			{
-				matched_rules_for_prefixes.push_back(&(current->tgt_rules));
-			}
+		}
+		if ( !rules_for_cur_span.empty() )
+		{
+			matched_rules_for_prefixes.push_back(rules_for_cur_span);
 		}
 		else
 		{
-			matched_rules_for_prefixes.push_back(NULL);
-			return matched_rules_for_prefixes;
+			matched_rules_for_prefixes.push_back({NULL});
 		}
 	}
 	return matched_rules_for_prefixes;
