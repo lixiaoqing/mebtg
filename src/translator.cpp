@@ -221,6 +221,7 @@ vector<TuneInfo> SentenceTranslator::get_tune_info(size_t sen_id)
 		tune_info.feature_values.push_back(candbeam.at(i)->swap_reorder_prob);
 		tune_info.feature_values.push_back(candbeam.at(i)->tgt_word_num);
 		tune_info.feature_values.push_back(candbeam.at(i)->phrase_num);
+		tune_info.feature_values.push_back(candbeam.at(i)->sense_ana_prob);
 		tune_info.total_score = candbeam.at(i)->score;
 		nbest_tune_info.push_back(tune_info);
 	}
@@ -375,6 +376,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_mono->mid = cand_rhs->beg;
 	cand_mono->tgt_word_num = cand_lhs->tgt_word_num + cand_rhs->tgt_word_num;
 	cand_mono->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
+	cand_mono->sense_ana_prob = cand_lhs->sense_ana_prob + cand_rhs->sense_ana_prob;
 	cand_mono->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob + mono_reorder_prob;
 	cand_mono->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob;
 	cand_mono->rank_lhs = rank_lhs;
@@ -401,6 +403,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_swap->mid = cand_rhs->beg;
 	cand_swap->tgt_word_num = cand_lhs->tgt_word_num + cand_rhs->tgt_word_num;
 	cand_swap->phrase_num = cand_lhs->phrase_num + cand_rhs->phrase_num;
+	cand_swap->sense_ana_prob = cand_lhs->sense_ana_prob + cand_rhs->sense_ana_prob;
 	cand_swap->mono_reorder_prob = cand_lhs->mono_reorder_prob + cand_rhs->mono_reorder_prob;
 	cand_swap->swap_reorder_prob = cand_lhs->swap_reorder_prob + cand_rhs->swap_reorder_prob + swap_reorder_prob;
 	cand_swap->rank_lhs = rank_lhs;
