@@ -6,6 +6,7 @@ struct TgtRule
 	bool operator<(const TgtRule &rhs) const{return score<rhs.score;};
 	int word_num;                               // 规则目标端的单词数
 	vector<int> wids;                           // 规则目标端的单词id序列
+	vector<int> src_sense_ids;                  // 规则源端的词义id序列
 	double score;                               // 规则打分, 即翻译概率与特征权重的加权
 	vector<double> probs;                       // 翻译概率和词汇权重
 	vector<vector<int> > s2t_pos_map;           // 记录每个源端位置对应到哪些目标端位置
@@ -28,7 +29,7 @@ class RuleTable
 			root=new RuleTrieNode;
 			load_rule_table(rule_table_file);
 		};
-		vector<vector<pair<TgtRule*,vector<int> > > > find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos);
+		vector<vector<TgtRule*> > find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos);
 
 	private:
 		void load_rule_table(const string &rule_table_file);

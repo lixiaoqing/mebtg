@@ -110,10 +110,10 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 {
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		auto matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
+		vector<vector<TgtRule*> > matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
 		for (size_t span=0;span<matched_rules_for_prefixes.size();span++)	//span=0对应跨度包含1个词的情况
 		{
-			if (matched_rules_for_prefixes.at(span).at(0).first == NULL)
+			if (matched_rules_for_prefixes.at(span).at(0) == NULL)
 			{
 				if (span == 0)
 				{
@@ -133,19 +133,19 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 				}
 				continue;
 			}
-			for (const auto &rule : matched_rules_for_prefixes.at(span))
+			for (const auto &tgt_rule : matched_rules_for_prefixes.at(span))
 			{
 				Cand* cand = new Cand;
 				cand->beg = beg;
 				cand->end = beg+span;
-				cand->tgt_word_num = rule.first->word_num;
-				cand->tgt_wids = rule.first->wids;
-				cand->trans_probs = rule.first->probs;
-				cand->score = rule.first->score;
+				cand->tgt_word_num = tgt_rule->word_num;
+				cand->tgt_wids = tgt_rule->wids;
+				cand->trans_probs = tgt_rule->probs;
+				cand->score = tgt_rule->score;
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 				for (size_t i=0; i<=span; i++)
 				{
-					auto &sense_id = rule.second.at(i);
+					auto &sense_id = tgt_rule->src_sense_ids.at(i);
 					cand->sense_ana_prob += sense_ana_prob_map_vec.at(beg+i)[src_vocab->get_word(sense_id)];
 				}
 				cand->score += feature_weight.phrase_num*cand->phrase_num + feature_weight.sense*cand->sense_ana_prob
