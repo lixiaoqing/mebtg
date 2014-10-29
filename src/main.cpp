@@ -172,8 +172,6 @@ void parse_wsd_model_file(map<string,MaxentModel*> &lemma2wsd_model, map<string,
 		return;
 	}
 	string line;
-	getline(fin,line);
-	int wsd_model_num = stoi(line);
 	while ( getline(fin,line) )
 	{
 		TrimLine(line);
@@ -181,7 +179,7 @@ void parse_wsd_model_file(map<string,MaxentModel*> &lemma2wsd_model, map<string,
 		Split(vs,line);
 		vector<string> synsets(vs.begin()+1,vs.end());
 		lemma2synsets[vs[0]] = synsets;
-		if (vs.size() == 2)
+		if (vs.size() > 2)
 		{
 			lemma2wsd_model[vs[0]] = new MaxentModel("data/"+vs[0]);
 		}
@@ -212,6 +210,12 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 	{
 		TrimLine(line);
 		input_sen.push_back(line);
+		vector<string> vs;
+		Split(vs,line);
+		for (const auto &w : vs)
+		{
+			models.src_vocab->get_id(w);                                             //避免并行时同时修改vocab发生冲突
+		}
 	}
 	int sen_num = input_sen.size();
 	output_sen.resize(sen_num);

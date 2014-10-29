@@ -58,7 +58,7 @@ SentenceTranslator::~SentenceTranslator()
 void SentenceTranslator::cal_sense_ana_score()
 {
 	sense_ana_prob_map_vec.resize(src_sen_len);
-	vector<string> null_words = {"null","null","null"};
+	vector<string> null_words = {"NULL","NULL","NULL"};
 	vector<string> src_words_ext(null_words.begin(),null_words.end());
 	src_words_ext.insert(src_words_ext.end(),src_words.begin(),src_words.end());
 	src_words_ext.insert(src_words_ext.end(),null_words.begin(),null_words.end());
