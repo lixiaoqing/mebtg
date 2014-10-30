@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++0x -O3 -lz -I. -DKENLM_MAX_ORDER=6 -g -lrt
+CXXFLAGS=-std=c++0x -O3 -lz -I. -DKENLM_MAX_ORDER=6 -fopenmp -lrt
 objs=lm/*.o util/*.o util/double-conversion/*.o
 
 all: translator phrase2bin

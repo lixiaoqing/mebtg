@@ -285,7 +285,7 @@ int main( int argc, char *argv[])
 	clock_t a,b;
 	a = clock();
 
-	//omp_set_nested(1);
+	omp_set_nested(1);
 	Filenames fns;
 	Parameter para;
 	Weight weight;

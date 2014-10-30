@@ -292,6 +292,7 @@ string SentenceTranslator::translate_sentence()
 			candbeam_matrix.at(beg).at(span).sort();
 		}
 	}
+	//cout<<words_to_str(candbeam_matrix.at(0).at(src_sen_len-1).top()->tgt_wids,true)<<endl;
 	return words_to_str(candbeam_matrix.at(0).at(src_sen_len-1).top()->tgt_wids,true);
 }
 

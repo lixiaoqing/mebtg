@@ -81,7 +81,6 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 ************************************************************************************* */
 vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos)
 {
-	vector<vector<TgtRule*> > matched_rules_for_prefixes;
 	vector<vector<RuleTrieNode*> > matched_trienodes_for_prefixes;                                //记录每个前缀匹配到的所有Trie节点
 	matched_trienodes_for_prefixes.push_back({root});
 	for (size_t i=pos;i<src_sense_id_matrix.size() && i-pos<RULE_LEN_MAX;i++)
@@ -111,6 +110,7 @@ vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vecto
 			break;
 	}
 
+	vector<vector<TgtRule*> > matched_rules_for_prefixes;
 	for (size_t i=1; i<matched_trienodes_for_prefixes.size(); i++)                                //跳过i=0(root节点)
 	{
 		auto &trienodes_for_cur_span = matched_trienodes_for_prefixes.at(i);
@@ -126,10 +126,10 @@ vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vecto
 		{
 			matched_rules_for_prefixes.push_back(rules_for_cur_span);
 		}
-		else
-		{
-			matched_rules_for_prefixes.push_back({NULL});
-		}
+	}
+	if ( matched_rules_for_prefixes.empty() )                                                     // 没有匹配的Trie节点或者匹配的节点都不包含规则
+	{
+		matched_rules_for_prefixes.push_back({NULL});
 	}
 	return matched_rules_for_prefixes;
 }
