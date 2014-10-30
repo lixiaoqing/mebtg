@@ -1,5 +1,15 @@
 #include "ruletable.h"
 
+void RuleTrieNode::put_tgt_rules_in_map()
+{
+	if ( wids2rule.size() == tgt_rules.size() )
+		return;
+	for (auto &tgt_rule : tgt_rules)
+	{
+		wids2rule.insert(make_pair(tgt_rule.wids,&tgt_rule) );
+	}
+}
+
 void RuleTable::load_rule_table(const string &rule_table_file)
 {
 	ifstream fin(rule_table_file.c_str(),ios::binary);
@@ -130,6 +140,35 @@ vector<vector<TgtRule*> > RuleTable::find_matched_rules_for_prefixes(const vecto
 	if ( matched_rules_for_prefixes.empty() )                                                     // 没有匹配的Trie节点或者匹配的节点都不包含规则
 	{
 		matched_rules_for_prefixes.push_back({NULL});
+	}
+	return matched_rules_for_prefixes;
+}
+
+vector<map<vector<int>,TgtRule*>* > RuleTable::find_matched_rules_for_prefixes(const vector<int> &src_wids,const size_t pos)
+{
+	vector<map<vector<int>,TgtRule*>* > matched_rules_for_prefixes;
+	RuleTrieNode* current = root;
+	for (size_t i=pos;i<src_wids.size() && i-pos<RULE_LEN_MAX;i++)
+	{
+		auto it = current->id2subtrie_map.find(src_wids.at(i));
+		if (it != current->id2subtrie_map.end())
+		{
+			current = it->second;
+			if (current->tgt_rules.size() == 0)
+			{
+				matched_rules_for_prefixes.push_back(NULL);
+			}
+			else
+			{
+				current->put_tgt_rules_in_map();
+				matched_rules_for_prefixes.push_back(&(current->wids2rule));
+			}
+		}
+		else
+		{
+			matched_rules_for_prefixes.push_back(NULL);
+			return matched_rules_for_prefixes;
+		}
 	}
 	return matched_rules_for_prefixes;
 }

@@ -12,10 +12,14 @@ struct TgtRule
 	vector<vector<int> > s2t_pos_map;           // 记录每个源端位置对应到哪些目标端位置
 };
 
-struct RuleTrieNode 
+class RuleTrieNode 
 {
-	vector<TgtRule> tgt_rules;                  // 一个规则源端对应的所有目标端
-	map <int, RuleTrieNode*> id2subtrie_map;    // 当前规则节点到下个规则节点的转换表
+	public:
+		void put_tgt_rules_in_map();
+	public:
+		vector<TgtRule> tgt_rules;                  // 一个规则源端对应的所有目标端
+		map<vector<int>,TgtRule*> wids2rule;        // 将规则目标端存储到map里面, key为译文的id序列
+		map <int, RuleTrieNode*> id2subtrie_map;    // 当前规则节点到下个规则节点的转换表
 };
 
 class RuleTable
@@ -30,6 +34,7 @@ class RuleTable
 			load_rule_table(rule_table_file);
 		};
 		vector<vector<TgtRule*> > find_matched_rules_for_prefixes(const vector<vector<int> > &src_sense_id_matrix,const size_t pos);
+		vector<map<vector<int>,TgtRule*>* > find_matched_rules_for_prefixes(const vector<int> &src_wids,const size_t pos);
 
 	private:
 		void load_rule_table(const string &rule_table_file);
