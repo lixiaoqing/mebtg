@@ -25,10 +25,11 @@ class RuleTrieNode
 class RuleTable
 {
 	public:
-		RuleTable(const size_t size_limit,bool load_alignment,const Weight &i_weight,const string &rule_table_file)
+		RuleTable(const size_t size_limit,bool load_alignment,const Weight &i_weight,const string &rule_table_file, int table_type)
 		{
 			RULE_NUM_LIMIT=size_limit;
 			LOAD_ALIGNMENT = load_alignment;
+			TABLE_TYPE = table_type;
 			weight=i_weight;
 			root=new RuleTrieNode;
 			load_rule_table(rule_table_file);
@@ -45,4 +46,5 @@ class RuleTable
 		bool LOAD_ALIGNMENT;                     // 是否加载词对齐信息
 		RuleTrieNode *root;                      // 规则Trie树根节点
 		Weight weight;                           // 特征权重
+		int TABLE_TYPE;
 };

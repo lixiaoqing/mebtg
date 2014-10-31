@@ -4,7 +4,8 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 {
 	src_vocab = i_models.src_vocab;
 	tgt_vocab = i_models.tgt_vocab;
-	ruletable = i_models.ruletable;
+	ruletable_sense = i_models.ruletable_sense;
+	ruletable_raw = i_models.ruletable_raw;
 	reorder_model = i_models.reorder_model;
 	lemma2wsd_model = i_models.lemma2wsd_model;
 	lemma2synsets = i_models.lemma2synsets;
@@ -13,11 +14,15 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	feature_weight = i_weight;
 
 	stringstream ss(input_sen);
-	string word;
-	while(ss>>word)
+	string lemma_word_pair;
+	while(ss>>lemma_word_pair)
 	{
-		src_words.push_back(word);
-		auto it = lemma2synsets->find(word);
+		size_t sep = lemma_word_pair.find("|");
+		string lemma(lemma_word_pair,0,sep);
+		string word(lemma_word_pair,sep+1);
+		src_lemmas.push_back(lemma);
+		src_wids.push_back( src_vocab->get_id(word) );
+		auto it = lemma2synsets->find(lemma);
 		if (it != lemma2synsets->end() )
 		{
 			vector<int> sense_ids;
@@ -29,11 +34,11 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 		}
 		else
 		{
-			src_sense_id_matrix.push_back({src_vocab->get_id(word)});
+			src_sense_id_matrix.push_back({src_vocab->get_id(lemma)});
 		}
 	}
 
-	src_sen_len = src_words.size();
+	src_sen_len = src_lemmas.size();
 	candbeam_matrix.resize(src_sen_len);
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
@@ -60,11 +65,11 @@ void SentenceTranslator::cal_sense_ana_score()
 	sense_ana_prob_map_vec.resize(src_sen_len);
 	vector<string> null_words = {"NULL","NULL","NULL"};
 	vector<string> src_words_ext(null_words.begin(),null_words.end());
-	src_words_ext.insert(src_words_ext.end(),src_words.begin(),src_words.end());
+	src_words_ext.insert(src_words_ext.end(),src_lemmas.begin(),src_lemmas.end());
 	src_words_ext.insert(src_words_ext.end(),null_words.begin(),null_words.end());
 	for (size_t i=0; i<src_sen_len; i++)
 	{
-		auto it = lemma2wsd_model->find(src_words.at(i));
+		auto it = lemma2wsd_model->find(src_lemmas.at(i));
 		if ( it != lemma2wsd_model->end() )
 		{
 			auto &wsd_model = it->second;
@@ -81,7 +86,7 @@ void SentenceTranslator::cal_sense_ana_score()
 			features.push_back("8/"+src_words_ext.at(pos-2)+"/"+src_words_ext.at(pos+1) );
 			features.push_back("9/"+src_words_ext.at(pos-1)+"/"+src_words_ext.at(pos+2) );
 			features.push_back("10/"+src_words_ext.at(pos+1)+"/"+src_words_ext.at(pos+3) );
-			features.insert(features.end(),src_words.begin(),src_words.end() );
+			features.insert(features.end(),src_lemmas.begin(),src_lemmas.end() );
 			vector<double> sense_ana_prob_vec;
 			wsd_model->eval_all(sense_ana_prob_vec,features);
 			for (size_t j=0; j<src_sense_id_matrix.at(i).size(); j++)
@@ -92,7 +97,7 @@ void SentenceTranslator::cal_sense_ana_score()
 		}
 		else
 		{
-			sense_ana_prob_map_vec.at(i).insert(make_pair(src_words.at(i),0) );
+			sense_ana_prob_map_vec.at(i).insert(make_pair(src_lemmas.at(i),0) );
 		}
 	}
 }
@@ -110,7 +115,8 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 {
 	for (size_t beg=0;beg<src_sen_len;beg++)
 	{
-		vector<vector<TgtRule*> > matched_rules_for_prefixes = ruletable->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
+		vector<vector<TgtRule*> > matched_rules_for_prefixes = ruletable_sense->find_matched_rules_for_prefixes(src_sense_id_matrix,beg);
+		vector<map<vector<int>,TgtRule*>*> matched_raw_rules_for_prefixes = ruletable_raw->find_matched_rules_for_prefixes(src_wids,beg);
 		for (size_t span=0;span<matched_rules_for_prefixes.size();span++)	//span=0对应跨度包含1个词的情况
 		{
 			if (matched_rules_for_prefixes.at(span).at(0) == NULL)
@@ -121,8 +127,8 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 					cand->beg = beg;
 					cand->end = beg+span;
 					cand->tgt_wids.push_back(tgt_vocab->get_id("NULL"));
-					cand->trans_probs.resize(PROB_NUM,LogP_PseudoZero);
-					for (size_t i=0;i<PROB_NUM;i++)
+					cand->trans_probs.resize(PROB_NUM*2,LogP_PseudoZero);
+					for (size_t i=0;i<PROB_NUM*2;i++)
 					{
 						cand->score += feature_weight.trans.at(i)*cand->trans_probs.at(i);
 					}
@@ -135,13 +141,25 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 			}
 			for (const auto &tgt_rule : matched_rules_for_prefixes.at(span))
 			{
+				assert(matched_raw_rules_for_prefixes.size()>span);
+				auto it = matched_raw_rules_for_prefixes.at(span)->find(tgt_rule->wids);
+				vector<double> raw_trans_probs(PROB_NUM,0.0);
+				double raw_rule_score = 0.0;
+				if (it != matched_raw_rules_for_prefixes.at(span)->end() )
+				{
+					auto raw_tgt_rule = it->second;
+					raw_trans_probs = raw_tgt_rule->probs;
+					raw_rule_score = raw_tgt_rule->score;
+				}
 				Cand* cand = new Cand;
 				cand->beg = beg;
 				cand->end = beg+span;
 				cand->tgt_word_num = tgt_rule->word_num;
 				cand->tgt_wids = tgt_rule->wids;
 				cand->trans_probs = tgt_rule->probs;
+				cand->trans_probs.insert( cand->trans_probs.end(),raw_trans_probs.begin(),raw_trans_probs.end() );
 				cand->score = tgt_rule->score;
+				cand->score += raw_rule_score;
 				cand->lm_prob = lm_model->cal_increased_lm_score(cand);
 				for (size_t i=0; i<=span; i++)
 				{
@@ -175,10 +193,10 @@ pair<double,double> SentenceTranslator::cal_reorder_score(const Cand* cand_lhs,c
 	int tgt_wid_end_rhs = cand_rhs->tgt_wids.at(cand_rhs->tgt_wids.size()-1);
 	vector<string> feature_vec;
 	feature_vec.resize(8);
-	feature_vec.at(0) = "c11=" + src_words.at(src_pos_beg_lhs);
-	feature_vec.at(1) = "c12=" + src_words.at(src_pos_end_lhs);
-	feature_vec.at(2) = "c21=" + src_words.at(src_pos_beg_rhs);
-	feature_vec.at(3) = "c22=" + src_words.at(src_pos_end_rhs);
+	feature_vec.at(0) = "c11=" + src_lemmas.at(src_pos_beg_lhs);
+	feature_vec.at(1) = "c12=" + src_lemmas.at(src_pos_end_lhs);
+	feature_vec.at(2) = "c21=" + src_lemmas.at(src_pos_beg_rhs);
+	feature_vec.at(3) = "c22=" + src_lemmas.at(src_pos_end_rhs);
 	feature_vec.at(4) = "e11=" + tgt_vocab->get_word(tgt_wid_beg_lhs);
 	feature_vec.at(5) = "e12=" + tgt_vocab->get_word(tgt_wid_end_lhs);
 	feature_vec.at(6) = "e21=" + tgt_vocab->get_word(tgt_wid_beg_rhs);
@@ -212,7 +230,7 @@ vector<TuneInfo> SentenceTranslator::get_tune_info(size_t sen_id)
 		TuneInfo tune_info;
 		tune_info.sen_id = sen_id;
 		tune_info.translation = words_to_str(candbeam.at(i)->tgt_wids,false);
-		for (size_t j=0;j<PROB_NUM;j++)
+		for (size_t j=0;j<PROB_NUM*2;j++)
 		{
 			tune_info.feature_values.push_back(candbeam.at(i)->trans_probs.at(j));
 		}
@@ -250,7 +268,7 @@ void SentenceTranslator::dump_rules(vector<string> &applied_rules, Cand *cand)
 		string applied_rule;
 		for (size_t i=cand->beg; i<=cand->end; i++)
 		{
-			applied_rule += src_words.at(i)+" ";
+			applied_rule += src_lemmas.at(i)+" ";
 		}
 		applied_rule += "||| ";
 		for (auto tgt_wid : cand->tgt_wids)
@@ -386,7 +404,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_mono->child_rhs = cand_rhs;
 	cand_mono->tgt_wids = cand_lhs->tgt_wids;
 	cand_mono->tgt_wids.insert(cand_mono->tgt_wids.end(),cand_rhs->tgt_wids.begin(),cand_rhs->tgt_wids.end());
-	for (size_t i=0;i<PROB_NUM;i++)
+	for (size_t i=0;i<PROB_NUM*2;i++)
 	{
 		cand_mono->trans_probs.push_back(cand_lhs->trans_probs.at(i)+cand_rhs->trans_probs.at(i));
 	}
@@ -413,7 +431,7 @@ void SentenceTranslator::merge_subcands_and_add_to_pq(Cand* cand_lhs, Cand* cand
 	cand_swap->child_rhs = cand_lhs;
 	cand_swap->tgt_wids = cand_rhs->tgt_wids;
 	cand_swap->tgt_wids.insert(cand_swap->tgt_wids.end(),cand_lhs->tgt_wids.begin(),cand_lhs->tgt_wids.end());
-	for (size_t i=0;i<PROB_NUM;i++)
+	for (size_t i=0;i<PROB_NUM*2;i++)
 	{
 		cand_swap->trans_probs.push_back(cand_lhs->trans_probs.at(i)+cand_rhs->trans_probs.at(i));
 	}

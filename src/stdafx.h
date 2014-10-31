@@ -50,7 +50,8 @@ struct Filenames
 	string nbest_file;
 	string src_vocab_file;
 	string tgt_vocab_file;
-	string rule_table_file;
+	string pt_sense_file;
+	string pt_raw_file;
 	string lm_file;
 	string reorder_model_file;
 	string wsd_model_file;

@@ -10,7 +10,8 @@ struct Models
 {
 	Vocab *src_vocab;
 	Vocab *tgt_vocab;
-	RuleTable *ruletable;
+	RuleTable *ruletable_sense;
+	RuleTable *ruletable_raw;
 	MaxentModel *reorder_model;
 	map<string,MaxentModel*> *lemma2wsd_model;
 	map<string,vector<string> > *lemma2synsets;
@@ -38,7 +39,8 @@ class SentenceTranslator
 	private:
 		Vocab *src_vocab;
 		Vocab *tgt_vocab;
-		RuleTable *ruletable;
+		RuleTable *ruletable_sense;
+		RuleTable *ruletable_raw;
 		MaxentModel *reorder_model;
 		map<string,MaxentModel*> *lemma2wsd_model;
 		map<string,vector<string> > *lemma2synsets;
@@ -48,7 +50,8 @@ class SentenceTranslator
 
 		vector<vector<CandBeam> > candbeam_matrix;		      //存储解码过程中所有跨度对应的候选列表, 
 													          //candbeam_matrix[i][j]存储起始位置为i, 跨度为j的候选列表
-		vector<string> src_words;
+		vector<string> src_lemmas;
+		vector<int> src_wids;
 		vector<vector<int> > src_sense_id_matrix;             //将源语言句子每个词对应的所有词义依次排列成一个矩阵
 		vector<map<string,double> > sense_ana_prob_map_vec;   //存储源语言每个词的词义分析概率
 		size_t src_sen_len;

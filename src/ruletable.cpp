@@ -66,13 +66,9 @@ void RuleTable::load_rule_table(const string &rule_table_file)
 
 
 		tgt_rule.score = 0;
-		if( tgt_rule.probs.size() != weight.trans.size() )
+		for( size_t i=0; i<tgt_rule.probs.size(); i++ )
 		{
-			cout<<"number of probability in rule is wrong!"<<endl;
-		}
-		for( size_t i=0; i<weight.trans.size(); i++ )
-		{
-			tgt_rule.score += tgt_rule.probs[i]*weight.trans[i];
+			tgt_rule.score += tgt_rule.probs[i]*weight.trans[i+TABLE_TYPE*PROB_NUM];
 		}
 		tgt_rule.src_sense_ids = src_wids;
 

@@ -1,25 +1,27 @@
 #include "myutils.h"
 const int LEN = 4096;
+unordered_map <string,int> ch_vocab;
+unordered_map <string,int> en_vocab;
+vector<string> ch_vocab_vec;
+vector<string> en_vocab_vec;
+int ch_word_id = 0;
+int en_word_id = 0;
 
-void phrase2bin(string phrase_filename,string mode)
+void convert_phrase_table(string phrase_filename, string mode)
 {
-	unordered_map <string,int> ch_vocab;
-	unordered_map <string,int> en_vocab;
-	vector<string> ch_vocab_vec;
-	vector<string> en_vocab_vec;
-	int ch_word_id = 0;
-	int en_word_id = 0;
 	gzFile gzfp = gzopen(phrase_filename.c_str(),"r");
 	if (!gzfp)
 	{
 		cout<<"fail to open "<<phrase_filename<<endl;
 		return;
 	}
-	ofstream fout;
+	string out_fn = phrase_filename.substr(0,phrase_filename.find(".") );
 	if (mode == "1")
-		fout.open("prob.bin-with-alignment",ios::binary);
+		out_fn = out_fn+".bin-with-alignment";
 	else
-		fout.open("prob.bin-without-alignment",ios::binary);
+		out_fn = out_fn+".bin-without-alignment";
+	ofstream fout;
+	fout.open(out_fn.c_str(),ios::binary);
 	if (!fout.is_open())
 	{
 		cout<<"fail open model file to write!\n";
@@ -112,7 +114,12 @@ void phrase2bin(string phrase_filename,string mode)
 	}
 	gzclose(gzfp);
 	fout.close();
+}
 
+void phrase2bin(vector<string> &fns,string mode)
+{
+	for (auto &fn : fns)
+		convert_phrase_table(fn,mode);
 	ofstream f_ch_vocab("vocab.ch");
 	if (!f_ch_vocab.is_open())
 	{
@@ -142,11 +149,13 @@ int main(int argc,char* argv[])
 {
     if(argc == 1)
     {
-		cout<<"usage: ./phrase2bin phrase.gz mode\nconvert alignment if mode==1, don't convert if mode==0\n";
+		cout<<"usage: ./phrase2bin phrase1.gz [phrase2.gz ...] mode\nconvert alignment if mode==1, don't convert if mode==0\n";
 		return 0;
     }
-    string phrase_filename(argv[1]);
-	string mode(argv[2]);
-    phrase2bin(phrase_filename,mode);
+	vector<string> fns;
+	for (int i=1; i<argc-1;i++)
+		fns.push_back(argv[i]);
+	string mode(argv[argc-1]);
+    phrase2bin(fns,mode);
 	return 0;
 }

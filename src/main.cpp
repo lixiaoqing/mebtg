@@ -38,10 +38,15 @@ void read_config(Filenames &fns,Parameter &para, Weight &weight, const string &c
 			getline(fin,line);
 			fns.tgt_vocab_file = line;
 		}
-		else if (line == "[rule-table-file]")
+		else if (line == "[pt-sense-file]")
 		{
 			getline(fin,line);
-			fns.rule_table_file = line;
+			fns.pt_sense_file = line;
+		}
+		else if (line == "[pt-raw-file]")
+		{
+			getline(fin,line);
+			fns.pt_raw_file = line;
 		}
 		else if (line == "[lm-file]")
 		{
@@ -293,7 +298,8 @@ int main( int argc, char *argv[])
 
 	Vocab *src_vocab = new Vocab(fns.src_vocab_file);
 	Vocab *tgt_vocab = new Vocab(fns.tgt_vocab_file);
-	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.rule_table_file);
+	RuleTable *ruletable_sense = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.pt_sense_file,0);
+	RuleTable *ruletable_raw = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.pt_raw_file,1);
 	MaxentModel *reorder_model = new MaxentModel(fns.reorder_model_file);
 	cout<<"load reorder model over\n";
 	map<string,MaxentModel*> lemma2wsd_model;
@@ -304,7 +310,7 @@ int main( int argc, char *argv[])
 	b = clock();
 	cout<<"loading time: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
 
-	Models models = {src_vocab,tgt_vocab,ruletable,reorder_model,&lemma2wsd_model,&lemma2synsets,lm_model};
+	Models models = {src_vocab,tgt_vocab,ruletable_sense,ruletable_raw,reorder_model,&lemma2wsd_model,&lemma2synsets,lm_model};
 	translate_file(models,para,weight,fns.input_file,fns.output_file);
 	b = clock();
 	cout<<"time cost: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
