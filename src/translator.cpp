@@ -141,15 +141,18 @@ void SentenceTranslator::fill_matrix_with_matched_rules()
 			}
 			for (const auto &tgt_rule : matched_rules_for_prefixes.at(span))
 			{
-				assert(matched_raw_rules_for_prefixes.size()>span);
-				auto it = matched_raw_rules_for_prefixes.at(span)->find(tgt_rule->wids);
 				vector<double> raw_trans_probs(PROB_NUM,0.0);
 				double raw_rule_score = 0.0;
-				if (it != matched_raw_rules_for_prefixes.at(span)->end() )
+				//assert(matched_raw_rules_for_prefixes.size()>span);
+				if (matched_raw_rules_for_prefixes.size()>span and matched_raw_rules_for_prefixes.at(span) != NULL)
 				{
-					auto raw_tgt_rule = it->second;
-					raw_trans_probs = raw_tgt_rule->probs;
-					raw_rule_score = raw_tgt_rule->score;
+					auto it = matched_raw_rules_for_prefixes.at(span)->find(tgt_rule->wids);
+					if (it != matched_raw_rules_for_prefixes.at(span)->end() )
+					{
+						auto raw_tgt_rule = it->second;
+						raw_trans_probs = raw_tgt_rule->probs;
+						raw_rule_score = raw_tgt_rule->score;
+					}
 				}
 				Cand* cand = new Cand;
 				cand->beg = beg;
