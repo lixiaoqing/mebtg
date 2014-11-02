@@ -176,6 +176,12 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 	{
 		TrimLine(line);
 		input_sen.push_back(line);
+		vector<string> vs;
+		Split(vs,line);
+		for (const auto &word : vs)
+		{
+			models.src_vocab->get_id(word);                                             //避免并行时同时修改vocab发生冲突
+		}
 	}
 	int sen_num = input_sen.size();
 	output_sen.resize(sen_num);
