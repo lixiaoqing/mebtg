@@ -6,8 +6,8 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	tgt_vocab = i_models.tgt_vocab;
 	ruletable = i_models.ruletable;
 	reorder_model = i_models.reorder_model;
-	lemma2wsd_model = i_models.lemma2wsd_model;
-	lemma2synsets = i_models.lemma2synsets;
+	target2wsd_model = i_models.target2wsd_model;
+	target2synsets = i_models.target2synsets;
 	lm_model = i_models.lm_model;
 	para = i_para;
 	feature_weight = i_weight;
@@ -17,8 +17,8 @@ SentenceTranslator::SentenceTranslator(const Models &i_models, const Parameter &
 	while(ss>>word)
 	{
 		src_words.push_back(word);
-		auto it = lemma2synsets->find(word);
-		if (it != lemma2synsets->end() )
+		auto it = target2synsets->find(word);
+		if (it != target2synsets->end() )
 		{
 			vector<int> sense_ids;
 			for (const auto &synset : it->second)
@@ -64,8 +64,8 @@ void SentenceTranslator::cal_sense_ana_score()
 	src_words_ext.insert(src_words_ext.end(),null_words.begin(),null_words.end());
 	for (size_t i=0; i<src_sen_len; i++)
 	{
-		auto it = lemma2wsd_model->find(src_words.at(i));
-		if ( it != lemma2wsd_model->end() )
+		auto it = target2wsd_model->find(src_words.at(i));
+		if ( it != target2wsd_model->end() )
 		{
 			auto &wsd_model = it->second;
 			size_t pos = i+3;

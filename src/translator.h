@@ -12,8 +12,8 @@ struct Models
 	Vocab *tgt_vocab;
 	RuleTable *ruletable;
 	MaxentModel *reorder_model;
-	map<string,MaxentModel*> *lemma2wsd_model;
-	map<string,vector<string> > *lemma2synsets;
+	map<string,MaxentModel*> *target2wsd_model;
+	map<string,vector<string> > *target2synsets;
 	LanguageModel *lm_model;
 };
 
@@ -40,8 +40,8 @@ class SentenceTranslator
 		Vocab *tgt_vocab;
 		RuleTable *ruletable;
 		MaxentModel *reorder_model;
-		map<string,MaxentModel*> *lemma2wsd_model;
-		map<string,vector<string> > *lemma2synsets;
+		map<string,MaxentModel*> *target2wsd_model;
+		map<string,vector<string> > *target2synsets;
 		LanguageModel *lm_model;
 		Parameter para;
 		Weight feature_weight;

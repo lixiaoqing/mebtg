@@ -162,7 +162,7 @@ void parse_args(int argc, char *argv[],Filenames &fns,Parameter &para, Weight &w
 	}
 }
 
-void parse_wsd_model_file(map<string,MaxentModel*> &lemma2wsd_model, map<string,vector<string> > &lemma2synsets, const string &wsd_model_catalog_file)
+void parse_wsd_model_file(map<string,MaxentModel*> &target2wsd_model, map<string,vector<string> > &target2synsets, const string &wsd_model_catalog_file)
 {
 	ifstream fin;
 	fin.open(wsd_model_catalog_file.c_str());
@@ -178,10 +178,10 @@ void parse_wsd_model_file(map<string,MaxentModel*> &lemma2wsd_model, map<string,
 		vector<string> vs;
 		Split(vs,line);
 		vector<string> synsets(vs.begin()+1,vs.end());
-		lemma2synsets[vs[0]] = synsets;
+		target2synsets[vs[0]] = synsets;
 		if (vs.size() > 2)
 		{
-			lemma2wsd_model[vs[0]] = new MaxentModel("data/"+vs[0]);
+			target2wsd_model[vs[0]] = new MaxentModel("data/"+vs[0]);
 		}
 	}
 	cout<<"load wsd models over\n";
@@ -212,9 +212,17 @@ void translate_file(const Models &models, const Parameter &para, const Weight &w
 		input_sen.push_back(line);
 		vector<string> vs;
 		Split(vs,line);
-		for (const auto &w : vs)
+		for (const auto &w : vs)                                             //避免并行时同时修改vocab发生冲突
 		{
-			models.src_vocab->get_id(w);                                             //避免并行时同时修改vocab发生冲突
+			models.src_vocab->get_id(w);
+			auto it = models.target2synsets->find(w);
+			if (it != models.target2synsets->end() )
+			{
+				for (const auto &synset : it->second)
+				{
+					models.src_vocab->get_id(synset);
+				}
+			}
 		}
 	}
 	int sen_num = input_sen.size();
@@ -296,15 +304,15 @@ int main( int argc, char *argv[])
 	RuleTable *ruletable = new RuleTable(para.RULE_NUM_LIMIT,para.LOAD_ALIGNMENT,weight,fns.rule_table_file);
 	MaxentModel *reorder_model = new MaxentModel(fns.reorder_model_file);
 	cout<<"load reorder model over\n";
-	map<string,MaxentModel*> lemma2wsd_model;
-	map<string,vector<string> > lemma2synsets;
-	parse_wsd_model_file(lemma2wsd_model,lemma2synsets,fns.wsd_model_file);
+	map<string,MaxentModel*> target2wsd_model;
+	map<string,vector<string> > target2synsets;
+	parse_wsd_model_file(target2wsd_model,target2synsets,fns.wsd_model_file);
 	LanguageModel *lm_model = new LanguageModel(fns.lm_file,tgt_vocab);
 
 	b = clock();
 	cout<<"loading time: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
 
-	Models models = {src_vocab,tgt_vocab,ruletable,reorder_model,&lemma2wsd_model,&lemma2synsets,lm_model};
+	Models models = {src_vocab,tgt_vocab,ruletable,reorder_model,&target2wsd_model,&target2synsets,lm_model};
 	translate_file(models,para,weight,fns.input_file,fns.output_file);
 	b = clock();
 	cout<<"time cost: "<<double(b-a)/CLOCKS_PER_SEC<<endl;
